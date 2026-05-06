@@ -179,19 +179,6 @@ public function save() {
 </form>
 ```
 
-### Функция do_action() - Хуки
-
-```twig
-{# Выполнение хуков в шаблонах #}
-{{ do_action('header_content') }}
-{{ do_action('product_additional_info', {'product_id': product.id}) }}
-
-{# Условное выполнение #}
-{% if do_action('check_permission', {'action': 'edit'}) %}
-    <button>Редактировать</button>
-{% endif %}
-```
-
 ### Функция controller() - Загрузка контроллеров
 
 ```twig

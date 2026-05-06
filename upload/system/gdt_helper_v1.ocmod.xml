@@ -10,21 +10,15 @@
         <operation>
             <search><![CDATA[$twig = new \Twig\Environment($loader, $config);]]></search>
             <add position="after"><![CDATA[
-            $twig->addFunction(new \Twig\TwigFunction('__', function($file, $key = null) {
+            $twig->addFunction(new \Twig\TwigFunction('__', function($key = null, $file = null, ...$args) {
                 if(function_exists('__')) {
-                    return __($file, $key = null);
+                    return __($key, $file, ...$args);
                 }
                 return null;
             }));
             $twig->addFunction(new \Twig\TwigFunction('route', function($file, $key = []) {
                 if(function_exists('route')) {
                     return route($file, $key);
-                }
-                return null;
-            }));
-            $twig->addFunction(new \Twig\TwigFunction('do_action', function($file, $key = []) {
-                if(function_exists('do_action')) {
-                    return do_action($file, $key);
                 }
                 return null;
             }));
@@ -38,7 +32,7 @@
                 }
                 return null;
             }));
-            ]]>            </add>
+            ]]></add>
         </operation>
     </file>
 
@@ -54,7 +48,7 @@
             <add position="after"><![CDATA[
     // Статический экземпляр для глобального доступа
     private static $instance;
-            ]]>            </add>
+            ]]></add>
         </operation>
 
         <operation>
@@ -75,7 +69,7 @@
     public static function setInstance(Registry $instance) {
         self::$instance = $instance;
     }
-            ]]>            </add>
+            ]]></add>
         </operation>
 
 
@@ -90,19 +84,6 @@
         ]]></add>
         </operation>
 
-        <operation>
-            <search><![CDATA[final class Registry {]]></search>
-            <add position="before"><![CDATA[
-// Global helper function для новой системы хуков
-if (is_file(DIR_SYSTEM . 'helper/gdt_helper.php')) {
-    require_once(DIR_SYSTEM . 'helper/gdt_helper.php');
-
-if (is_file(DIR_SYSTEM . 'library/gbitstudio/gdt/engine/gdt.php')) {
-    require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/engine/gdt.php');
-}
-            ]]>            </add>
-        </operation>
-
     </file>
 
 
@@ -113,13 +94,14 @@ if (is_file(DIR_SYSTEM . 'library/gbitstudio/gdt/engine/gdt.php')) {
             <add position="after"><![CDATA[
         // Инициализация GDT Framework и загрузка хуков из admin/controller/hook/
         try {
-            require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/engine/gdthelper.php');
-            \GbitStudio\GDT\Engine\GDT::init($this->registry);
+            $this->load->library('gbitstudio/gdt');
+            $this->load->gdt->init($this->registry);
+            $this->load->helper('gdt_helper');
         } catch (Exception $e) {
             // Логируем ошибку, но не прерываем выполнение
             error_log('GDT Framework init error: ' . $e->getMessage());
         }
-            ]]>            </add>
+            ]]></add>
         </operation>
     </file>
 

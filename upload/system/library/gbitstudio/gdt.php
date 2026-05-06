@@ -1,6 +1,6 @@
 <?php
 
-namespace GbitStudio\GDT\Engine;
+namespace GbitStudio;
 
 /**
  * Класс GDT - провайдер основных экземпляров OpenCart
@@ -18,6 +18,11 @@ class GDT {
      *
      * @param object $registry
      */
+    
+    public function __construct($registry) {
+        self::init($registry);
+    }
+
     public static function init($registry) {
         self::$registry = $registry;
     }
@@ -29,10 +34,10 @@ class GDT {
      */
     public static function registry($key = null) {
         if ($key !== null) {
-            if (!self::$registry->has($key)) {
+            if (!self::has($key)) {
                 throw new \Exception('Key not found in registry: ' . $key);
             }
-            return self::$registry->get($key);
+            return self::get($key);
         }
         return self::$registry;
     }
@@ -82,17 +87,13 @@ class GDT {
      * @return mixed Объект ответа приложения
      */
     public static function response($content = null) {
-        if (!self::$registry->has('gtd_response')) {
-            self::$registry->set('gtd_response', new \GbitStudio\GDT\Http\Response(self::app('response')));
-        }
-        
-        $gtd_response = self::$registry->get('gtd_response');
+        $response = self::app('response');
         
         if ($content !== null) {
-            $gtd_response->setOutput($content);
+            $response->setOutput($content);
         }
         
-        return $gtd_response;
+        return $response;
     }
     
     /**
@@ -102,14 +103,12 @@ class GDT {
      * @return mixed Объект запроса из приложения
      */
     public static function request($key = null) {
-        if (!self::$registry->has('gtd_request')) {
-            self::$registry->set('gtd_request', new \GbitStudio\GDT\Http\Request(self::app('request')));
-        }
-        
-        $request = self::$registry->get('gtd_request');
+        $request = self::app('request');
         
         if ($key !== null) {
-            return $request->get($key);
+            if (isset($request->get[$key])) return $request->get[$key];
+            if (isset($request->post[$key])) return $request->post[$key];
+            return null;
         }
         
         return $request;
@@ -144,16 +143,67 @@ class GDT {
      * @param string|null $file Языковой файл
      * @return string Переведенная строка
      */
-    public static function __($key = null, $file = null) {
+    /**
+     * Универсальный метод для получения переводов OpenCart.
+     * 
+     * Поддерживает несколько режимов работы:
+     * 
+     * 1. Получение всех текущих переводов:
+     *    GDT::__(); // вернет массив всех загруженных строк
+     * 
+     * 2. Получение по ключу из уже загруженных файлов:
+     *    GDT::__('text_account'); // 'Личный кабинет'
+     * 
+     * 3. Автоматическая загрузка файла через точку (синтаксис Laravel/Modern):
+     *    GDT::__('account/login.text_forgotten'); // Загрузит account/login.php и вернет 'Забыли пароль?'
+     * 
+     * 4. Загрузка из конкретного файла:
+     *    GDT::__('button_save', 'common/header'); // 'Сохранить' из файла common/header.php
+     * 
+     * 5. Получение всех строк из конкретного файла:
+     *    GDT::__(null, 'extension/module/featured'); // вернет массив всех строк модуля
+     * 
+     * 6. Поддержка переменных (sprintf/vsprintf):
+     *    // Если в языке: 'У вас %s новых сообщений, %s'
+     *    GDT::__('text_new_msgs', null, 5, 'Григорий'); // 'У вас 5 новых сообщений, Григорий'
+     *
+     * @param string|null $key  Ключ перевода ИЛИ 'путь/к/файлу.ключ'
+     * @param string|null $file Путь к файлу перевода (если не указан в $key через точку)
+     * @param mixed       ...$args Дополнительные аргументы для замены плейсхолдеров (%s, %d) в строке
+     * 
+     * @return string|array|null Переведенная строка, массив переводов или сам ключ, если перевод не найден
+     */
+    public static function __($key = null, $file = null, ...$args) {
+        if ($key === null && $file === null) {
+            return self::get('language')->all();
+        }
+
+        // Авто-определение файла из ключа (например, 'common/header.text_home')
+        if ($file === null && $key !== null && strpos($key, '.') !== false) {
+            $last_dot = strrpos($key, '.');
+            $file = substr($key, 0, $last_dot);
+            $key = substr($key, $last_dot + 1);
+        }
+
         if ($file !== null) {
-            self::$registry->get('load')->language($file, $key);
-            return '';
+            // В OC 3.x+ метод возвращает массив данных из файла
+            $data = self::get('load')->language($file);
+            
+            if ($key === null || $key === '') {
+                return $data;
+            }
+            
+            $text = isset($data[$key]) ? $data[$key] : $key;
+        } else {
+            $text = self::get('language')->get($key);
         }
-        if ($key === null) {
-            return self::$registry->get('language')->all();
+
+        // Если переданы дополнительные аргументы, используем sprintf
+        if (!empty($args) && is_string($text)) {
+            return vsprintf($text, $args);
         }
-        
-        return self::$registry->get('language')->get($key);
+
+        return $text;
     }
     
     /**
@@ -167,7 +217,7 @@ class GDT {
         }
         
         try {
-            if (self::$registry->has('user') && self::$registry->get('user')) {
+            if (self::has('user') && self::get('user')) {
                 return true;
             }
         } catch (\Exception $e) {
@@ -199,7 +249,7 @@ class GDT {
         
         if (self::isAdmin()) {
             try {
-                $session = self::$registry->get('session');
+                $session = self::get('session');
                 $user_token = isset($session->data['user_token']) ? $session->data['user_token'] : '';
                 
                 if ($user_token && strpos($args, 'user_token=') === false) {
@@ -211,7 +261,7 @@ class GDT {
             }
         }
         
-        return self::$registry->get('url')->link($route, $args, $secure);
+        return self::get('url')->link($route, $args, $secure);
     }
     
     /**
@@ -222,7 +272,7 @@ class GDT {
      * @return mixed Значение из сессии или объект сессии
      */
     public static function session($key = null, $value = null) {
-        $session = self::$registry->get('session');
+        $session = self::get('session');
         
         if ($key === null) {
             return $session;
@@ -242,7 +292,16 @@ class GDT {
      * @return object Объект базы данных
      */
     public static function db() {
-        return self::$registry->get('db');
+        return self::get('db');
+    }
+    
+    /**
+     * Получает объект URL
+     *
+     * @return object Объект URL
+     */
+    public static function url() {
+        return self::get('url');
     }
     
     /**
@@ -254,14 +313,14 @@ class GDT {
      * @return mixed Значение из кеша или объект кеша
      */
     public static function cache($key = null, $value = null, $expire = 3600) {
-        $cache = self::$registry->get('cache');
+        $cache = self::get('cache');
         
         if ($key === null) {
             return $cache;
         }
         
         if ($value !== null) {
-            $cache->set($key, $value, $expire);
+            $cache->set($key, $value); // В стандартном кеше OC 3 нет 3-го аргумента в set()
             return $value;
         }
         
@@ -277,8 +336,7 @@ class GDT {
      */
     public static function logWrite($message, $filename = 'error.log') {
         try {
-            $log = self::$registry->get('log');
-            $log->write($message);
+            self::get('log')->write($message);
         } catch (\Exception $e) {
             // Фолбек на стандартное логирование PHP
             if (defined('DIR_LOGS')) {
@@ -291,15 +349,6 @@ class GDT {
     }
     
     /**
-     * Получает объект загрузчика
-     *
-     * @return object Объект загрузчика
-     */
-    public static function load() {
-        return self::$registry->get('load');
-    }
-    
-    /**
      * Отправляет JSON-ответ
      *
      * @param mixed $data Данные для отправки
@@ -307,10 +356,24 @@ class GDT {
      * @return void
      */
     public static function jsonResponse($data, $status = 200) {
-        http_response_code($status);
-        header('Content-Type: application/json');
-        echo json_encode($data);
-        exit;
+        $response = self::get('response');
+        $response->addHeader('Content-Type: application/json');
+        
+        if ($status !== 200) {
+            // В OC 3.x нет простого метода setStatus, обычно используется addHeader
+            $response->addHeader('HTTP/1.1 ' . $status);
+        }
+        
+        $response->setOutput(json_encode($data));
+    }
+    
+    /**
+     * Получает объект загрузчика
+     *
+     * @return object Объект загрузчика
+     */
+    public static function load() {
+        return self::$registry->get('load');
     }
     
     /**
@@ -371,5 +434,15 @@ class GDT {
      */
     public static function set($key, $value) {
         self::$registry->set($key, $value);
+    }
+}
+
+/**
+ * Базовый класс для системы хуков (заглушка)
+ */
+class Hook {
+    public static function do_action($route, $args = []) {
+        // Здесь в будущем можно реализовать систему событий
+        return null;
     }
 }

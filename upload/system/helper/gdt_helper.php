@@ -1,7 +1,6 @@
 <?php
 
-use GbitStudio\GDT\Engine\GDT;
-use GbitStudio\GDT\Engine\Hook;
+use GbitStudio\GDT;
 
 // Global helper function
 if (!function_exists('registry')) {
@@ -125,11 +124,12 @@ if (!function_exists('__')) {
      *
      * @param string $key Ключ для получения конкретного перевода
      * @param string|null $file Языковой файл (опционально)
-     * @return string Переведенная строка
+     * @param mixed ...$args Аргументы для sprintf
+     * @return string|array Переведенная строка
      */
-    function __($key = null, $file = null)
+    function __($key = null, $file = null, ...$args)
     {
-        return GDT::__($key, $file);
+        return GDT::__($key, $file, ...$args);
     }
 }
 
@@ -283,21 +283,6 @@ if (!function_exists('flash')) {
     function flash($key = null, $message = null)
     {
         return GDT::flash($key, $message);
-    }
-}
-
-if (!function_exists('do_action')) {
-    /**
-     * Выполняет действие с указанным файлом и ключом
-     * Теперь использует класс GDT
-     *
-     * @param string $file Путь к файлу действия
-     * @param mixed $key Ключ для передачи в действие
-     * @return mixed Результат выполнения действия
-     */
-    function do_action($file, $key = [])
-    {
-        return Hook::do_action($file, $key);
     }
 }
 

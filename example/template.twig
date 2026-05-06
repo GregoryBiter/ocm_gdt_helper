@@ -1,0 +1,45 @@
+{# Пример использования GDT Helper в Twig шаблонах #}
+
+<div class="gdt-example">
+    <h1>{{ title }}</h1>
+    
+    {# 1. Использование новой функции перевода __ #}
+    <p>
+        {# Простой перевод из уже загруженного файла #}
+        <strong>Кнопка:</strong> {{ __('button_save') }}
+    </p>
+    
+    <p>
+        {# Автоматическая загрузка конкретного файла и ключа через точку #}
+        <strong>Главная:</strong> {{ __('common/header.text_home') }}
+    </p>
+    
+    <p>
+        {# Перевод с аргументами (sprintf) #}
+        {# Если в ключе 'У вас %s товаров': #}
+        <strong>Корзина:</strong> {{ __('checkout/cart.text_items', null, 3, '500 руб') }}
+    </p>
+
+    {# 2. Генерация ссылок через route() #}
+    <div class="links">
+        <a href="{{ route('account/login') }}" class="btn btn-primary">
+            {{ __('account/login.text_login') }}
+        </a>
+        
+        <a href="{{ route('checkout/cart', {'remove': 123}) }}">
+            Удалить товар
+        </a>
+    </div>
+
+    {# 3. Условная логика с использованием хелперов #}
+    {% if is_admin() %}
+        <div class="alert alert-info">
+            Вы вошли как администратор.
+        </div>
+    {% endif %}
+
+    {# 4. Загрузка других контроллеров (аналог $this->load->controller) #}
+    <div class="sidebar">
+        {{ controller('common/column_left') }}
+    </div>
+</div>
