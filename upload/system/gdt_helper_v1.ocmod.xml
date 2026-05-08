@@ -5,7 +5,7 @@
     <version>1.0</version>
     <author>GbitStudio</author>
     <link>https://gbit-studio.com</link>
-    
+
     <file path="system/library/template/twig.php">
         <operation>
             <search><![CDATA[$twig = new \Twig\Environment($loader, $config);]]></search>
@@ -32,61 +32,9 @@
                 }
                 return null;
             }));
-            ]]></add>
+            ]]>            </add>
         </operation>
     </file>
-
-
-
-
-
-
-
-  <file path="system/engine/registry.php">
-        <operation>
-            <search><![CDATA[final class Registry {]]></search>
-            <add position="after"><![CDATA[
-    // Статический экземпляр для глобального доступа
-    private static $instance;
-            ]]></add>
-        </operation>
-
-        <operation>
-            <search><![CDATA[public function get($key) {]]></search>
-            <add position="before"><![CDATA[
-    /**
-     * Получить экземпляр реестра
-     * 
-     * @return Registry
-     */
-    public static function getInstance() {
-        if (self::$instance === null) {
-            self::$instance = new Registry();
-        }
-        return self::$instance;
-    }
-
-    public static function setInstance(Registry $instance) {
-        self::$instance = $instance;
-    }
-            ]]></add>
-        </operation>
-
-
-        <operation>
-            <search><![CDATA[$this->data[$key] = $value;]]></search>
-            <add position="after"><![CDATA[
-        // OCMOD Обновляем статический экземпляр
-        if (self::$instance === null) {
-            self::$instance = $this;
-        }
-        // OCMOD END
-        ]]></add>
-        </operation>
-
-    </file>
-
-
 
     <file path="admin/controller/startup/startup.php">
         <operation>
@@ -94,14 +42,37 @@
             <add position="after"><![CDATA[
         // Инициализация GDT Framework и загрузка хуков из admin/controller/hook/
         try {
-            $this->load->library('gbitstudio/gdt');
-            $this->load->gdt->init($this->registry);
+            $this->load->library('gbitstudio/gdt/app');
+            if ($this->registry->has('app')) {
+                $this->registry->set('gdt', $this->app);
+            }
+            $this->gdt->init($this->registry);
             $this->load->helper('gdt_helper');
         } catch (Exception $e) {
             // Логируем ошибку, но не прерываем выполнение
-            error_log('GDT Framework init error: ' . $e->getMessage());
+            error_log('GDT Framework Admin init error: ' . $e->getMessage());
         }
-            ]]></add>
+            ]]>            </add>
+        </operation>
+    </file>
+
+    <file path="catalog/controller/startup/startup.php">
+        <operation>
+            <search><![CDATA[public function index() {]]></search>
+            <add position="after"><![CDATA[
+        // Инициализация GDT Framework
+        try {
+            $this->load->library('gbitstudio/gdt/app');
+            if ($this->registry->has('app')) {
+                $this->registry->set('gdt', $this->app);
+            }
+            $this->gdt->init($this->registry);
+            $this->load->helper('gdt_helper');
+        } catch (Exception $e) {
+            // Логируем ошибку, но не прерываем выполнение
+            error_log('GDT Framework Catalog init error: ' . $e->getMessage());
+        }
+            ]]>            </add>
         </operation>
     </file>
 

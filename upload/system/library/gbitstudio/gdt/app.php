@@ -1,18 +1,18 @@
 <?php
 
-namespace GbitStudio;
+namespace GbitStudio\Gdt;
 
 /**
- * Класс GDT - провайдер основных экземпляров OpenCart
+ * Класс App - провайдер основных экземпляров OpenCart
  * Предоставляет статический доступ ко всем компонентам системы OpenCart
  */
-class GDT
+class App
 {
     /** @var object */
     private static $registry;
 
-    /** @var array Кэш экземпляров (Mini DI) */
-    private static $instances = [];
+    /** @var Container Контейнер зависимостей */
+    private static $container;
 
     /**
      * Инициализация провайдера
@@ -28,6 +28,12 @@ class GDT
     public static function init($registry)
     {
         self::$registry = $registry;
+
+        if (!class_exists('\\GbitStudio\\Gdt\\Container')) {
+            require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/container.php');
+        }
+
+        self::$container = new Container($registry);
     }
 
     /**
@@ -79,18 +85,13 @@ class GDT
      */
     public static function config($key = null, $default = null)
     {
-        if (!isset(self::$instances['config'])) {
-            if (!class_exists('\\GbitStudio\\Config')) {
-                require_once(DIR_SYSTEM . 'library/gbitstudio/config.php');
-            }
-            self::$instances['config'] = new Config(self::$registry);
-        }
+        $config = self::$container->get('config');
 
         if ($key === null) {
-            return self::$instances['config'];
+            return $config;
         }
 
-        return self::$instances['config']->get($key, $default);
+        return $config->get($key, $default);
     }
 
     /**
@@ -103,18 +104,13 @@ class GDT
      */
     public static function setting($code = null, $key = null, $default = null)
     {
-        if (!isset(self::$instances['setting'])) {
-            if (!class_exists('\\GbitStudio\\Setting')) {
-                require_once(DIR_SYSTEM . 'library/gbitstudio/setting.php');
-            }
-            self::$instances['setting'] = new Setting(self::$registry);
-        }
+        $setting = self::$container->get('setting');
 
         if ($code === null) {
-            return self::$instances['setting'];
+            return $setting;
         }
 
-        return self::$instances['setting']->get($code, $key, $default);
+        return $setting->get($code, $key, $default);
     }
 
     /**
@@ -349,9 +345,10 @@ class GDT
      * @param string $sql SQL-запрос
      * @return array
      */
-    public static function dbQuery($sql)
+    public static function query($sql)
     {
-        return self::db()->query($sql)->rows;
+        $query = self::db()->query($sql);
+        return isset($query->rows) ? $query->rows : [];
     }
 
     /**
@@ -360,10 +357,30 @@ class GDT
      * @param string $sql SQL-запрос
      * @return array|null
      */
-    public static function dbRow($sql)
+    public static function row($sql)
     {
         $query = self::db()->query($sql);
         return isset($query->row) ? $query->row : null;
+    }
+
+    /**
+     * Выполняет SQL-запрос и возвращает массив строк (rows)
+     *
+     * @deprecated Используйте App::query()
+     */
+    public static function dbQuery($sql)
+    {
+        return self::query($sql);
+    }
+
+    /**
+     * Выполняет SQL-запрос и возвращает одну строку (row)
+     *
+     * @deprecated Используйте App::row()
+     */
+    public static function dbRow($sql)
+    {
+        return self::row($sql);
     }
 
     /**
@@ -545,7 +562,7 @@ class GDT
      */
     public static function get($key)
     {
-        return self::$registry->get($key);
+        return self::$container->get($key);
     }
 
     /**
@@ -556,17 +573,18 @@ class GDT
      */
     public static function has($key)
     {
-        return self::$registry->has($key);
+        return self::$container->has($key);
     }
 
     /**
-     * Добавление компонента в Mini DI (и Registry)
+     * Добавление компонента в контейнер
      *
      * @param string $key Ключ компонента
      * @param mixed $value Значение
      */
     public static function set($key, $value)
     {
+        self::$container->set($key, $value);
         self::$registry->set($key, $value);
     }
 }

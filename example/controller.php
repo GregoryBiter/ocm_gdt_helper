@@ -8,9 +8,17 @@ class ControllerExtensionModuleGdtExample extends Controller
     {
         // 1. Использование глобальных хелперов
 
-        // Работа с конфигом
-        config('gdt_test_mode', true);
+        // Работа с конфигом (Runtime)
+        config('gdt_test_mode', null, true);
         $is_test = config('gdt_test_mode');
+
+        // Работа с конфигом через класс
+        $site_name = \GbitStudio\Gdt\App::config()->get('config_name');
+
+        // Использование нового класса Setting через App::setting()
+        // Работа с БД настройками (таблица setting)
+        $module_settings = \GbitStudio\Gdt\App::setting()->get('module_gdt_example');
+        $status = \GbitStudio\Gdt\App::setting()->get('module_gdt_example', 'status', 0);
 
         // Работа с переводами (новые функции)
         // Автоматическая загрузка файла и получение ключа
@@ -21,12 +29,21 @@ class ControllerExtensionModuleGdtExample extends Controller
         $cart_text = __('checkout/cart.text_items', null, 5, '100$');
 
         // 2. Использование статического класса GDT напрямую
-        \GbitStudio\GDT::logWrite('Пример записи в лог через GDT');
+        \GbitStudio\Gdt\App::logWrite('Пример записи в лог через GDT');
 
         // Получение данных из сессии
-        $token = \GbitStudio\GDT::session('user_token');
+        $token = \GbitStudio\Gdt\App::session('user_token');
 
-        // 3. Формирование JSON-ответа
+        // 3. Работа с базой данных через Query Builder (Laravel-style)
+        $latest_products = db('product')
+            ->select(['product_id', 'model', 'price'])
+            ->where('status', 1)
+            ->where('quantity', '>', 0)
+            ->orderBy('date_added', 'DESC')
+            ->limit(5)
+            ->get();
+
+        // 4. Формирование JSON-ответа
         if (request('ajax')) {
             return json_response([
                 'success' => true,

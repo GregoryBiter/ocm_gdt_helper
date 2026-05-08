@@ -1,515 +1,156 @@
-# GDT Helper Module
+# App Framework Helper for OpenCart
 
 ## Описание
+Модуль **App Helper** — это современная надстройка над OpenCart 3.x, которая превращает классическую разработку в комфортный процесс с использованием Laravel-подобного синтаксиса. Модуль предоставляет централизованный сервис-контейнер, мощный Query Builder и набор глобальных помощников (helpers) для быстрого доступа к ядру OpenCart.
 
-Модуль **GDT Helper** является базовым компонентом GDT Framework, который предоставляет глобальные вспомогательные функции и расширяет возможности OpenCart. Этот модуль обеспечивает Laravel-подобный синтаксис для работы с основными компонентами OpenCart через удобные helper-функции.
+---
 
-### Основные возможности:
+## 🚀 Основные возможности
+- **Service Container (DI)** — ленивая загрузка и централизованное управление компонентами.
+- **Fluent Query Builder** — работа с БД в стиле Laravel (`db('table')->where(...)->get()`).
+- **Глобальные Helpers** — функции `app()`, `config()`, `setting()`, `db()`, `__()` и др.
+- **Умные переводы** — поддержка dot-синтаксиса и автоматическая загрузка языковых файлов.
+- **Modern Architecture** — использование пространств имен `GbitStudio\Gdt`.
+- **Twig Integration** — доступ ко всем хелперам прямо из шаблонов.
 
-- 🌐 **Глобальные helper-функции** - удобный доступ к компонентам OpenCart из любого места
-- 🎯 **Laravel-подобный API** - знакомый синтаксис для разработчиков
-- 🔧 **Расширение Twig** - дополнительные функции для шаблонов
-- 📦 **Singleton Registry** - глобальный доступ к реестру OpenCart
-- ⚡ **Автоматическая инициализация** - интеграция с системой загрузки OpenCart
-- 🛠️ **OCMOD модификации** - безопасное изменение ядра OpenCart
+---
 
-## Технические требования
+## 📦 Установка
+1. Скопируйте содержимое папки `upload/` в корень вашего сайта.
+2. Установите модификатор `system/gdt_helper_v1.ocmod.xml` через панель OpenCart.
+3. Обновите кэш модификаторов.
 
-- PHP 7.4 или выше
-- OpenCart 3.x/4.x
-- Поддержка пространств имен (namespace)
-- Система OCMOD включена
-
-## Установка
-
-1. Скопируйте содержимое папки `upload/` в корневую директорию вашего OpenCart
-2. Установите OCMOD файл через админ-панель:
-   - Перейдите: Extensions → Installer
-   - Загрузите файл `gdt_helper_v1.ocmod.xml`
-   - Перейдите: Extensions → Modifications
-   - Нажмите кнопку "Refresh"
-
-### Структура установки:
-```
-system/gdt_helper_v1.ocmod.xml          # OCMOD модификации
-system/helper/gdt_helper.php            # Глобальные helper-функции
-system/library/gbitstudio/gdt/gdt.php   # Основной класс GDT
-system/library/gbitstudio/gdt/LICENSE   # Лицензия
+### Структура файлов
+```text
+system/library/gbitstudio/gdt/
+├── app.php        # Ядро фреймворка (Service Locator)
+├── container.php  # Контейнер зависимостей (DI)
+├── db.php         # Query Builder
+├── config.php     # Работа с runtime-конфигом
+└── setting.php    # Работа с настройками в БД
 ```
 
-## Глобальные Helper-функции
+---
 
-### registry() - Доступ к реестру OpenCart
+## 🛠️ Основные компоненты
+
+### 1. Сервис-контейнер и класс `App`
+Класс `App` является точкой входа. Он автоматически инициализируется при старте OpenCart.
 
 ```php
-// Получение всего реестра
-$registry = registry();
+use GbitStudio\Gdt\App;
 
-// Получение конкретного компонента
-$db = registry('db');
-$config = registry('config');
-$session = registry('session');
-$request = registry('request');
-$response = registry('response');
+// Получение сервисов
+$db = App::db();
+$config = App::config();
+$setting = App::setting();
 
-// Использование в любом месте кода
-function myCustomFunction() {
-    $db = registry('db');
-    $result = $db->query("SELECT * FROM " . DB_PREFIX . "product");
-    return $result->rows;
-}
+// Прокси к Registry OpenCart
+$cart = App::get('cart');
+$customer = App::customer();
 ```
 
-### app() - Работа с приложением GDT
+### 2. Работа с базой данных (Query Builder)
+Вы можете использовать хелпер `db('table')` для быстрого построения запросов.
 
 ```php
-// Получение экземпляра приложения
-$app = app();
+// Выборка данных
+$products = db('product')
+    ->select(['product_id', 'model'])
+    ->where('status', 1)
+    ->where('price', '>', 100)
+    ->orderBy('date_added', 'desc')
+    ->limit(10)
+    ->get(); // возвращает массив
 
-// Получение сервиса из приложения
-$service = app('my_service');
+// Одна строка
+$category = db('category')->where('category_id', 15)->first(); // или ->row()
 
-// Использование в контроллерах
-class ControllerCustomModule extends Controller {
-    public function index() {
-        $config = app('config');
-        $data['site_name'] = $config->get('config_name');
-    }
-}
+// CRUD операции
+$id = db('customer')->insert(['firstname' => 'Ivan', 'email' => 'test@test.com']);
+db('customer')->where('customer_id', $id)->update(['firstname' => 'Dmitry']);
+db('customer')->where('customer_id', $id)->delete();
 ```
 
-### config() - Работа с конфигурацией
+### 3. Быстрые SQL-запросы (Raw SQL)
+Если нужен обычный SQL, используйте `db_query` и `db_row`.
 
 ```php
-// Получение значения конфигурации
-$siteName = config('config_name');
-$dbPrefix = config('db_prefix');
-
-// Получение с значением по умолчанию
-$customSetting = config('custom_setting', 'default_value');
-
-// Установка значения конфигурации
-config('custom_key', 'custom_value');
-
-// Получение всей конфигурации
-$allConfig = config();
+$rows = db_query("SELECT * FROM " . DB_PREFIX . "product WHERE status = 1");
+$row = db_row("SELECT * FROM " . DB_PREFIX . "product WHERE product_id = 1");
 ```
 
-### response() - Управление ответами
+### 4. Конфигурация и Настройки
+Мы разделяем **Config** (runtime настройки OC) и **Setting** (настройки из таблицы `setting`).
 
 ```php
-// Получение объекта ответа
-$response = response();
+// Runtime Config
+$name = config('config_name');
+config('my_runtime_key', null, 'value'); // Установка
 
-// Установка контента ответа
-response('Hello World');
-
-// JSON ответ
-response()->addHeader('Content-Type: application/json');
-response(json_encode(['status' => 'success']));
-
-// В AJAX контроллерах
-public function ajaxAction() {
-    $data = ['message' => 'Success', 'data' => $someData];
-    response(json_encode($data));
-}
+// Persistent Settings (DB)
+$val = setting('module_my', 'status', 'default');
+setting()->set('module_my', ['status' => 1]); // Только в админке
 ```
 
-### request() - Работа с запросами
+### 5. Переводы и Языки `__()`
+Хелпер `__()` автоматически загружает файлы, если это необходимо.
 
 ```php
-// Получение объекта запроса
-$request = request();
+// Обычный перевод
+echo __('text_home');
 
-// Получение POST данных
-$postData = request()->post;
-$name = request()->post['name'] ?? '';
+// С автозагрузкой файла (синтаксис 'файл.ключ')
+echo __('common/header.text_home');
 
-// Получение GET параметров
-$getId = request()->get['id'] ?? 0;
-
-// Получение конкретного значения (если поддерживается)
-$value = request('parameter_name');
+// С передачей аргументов (sprintf)
+echo __('checkout/cart.text_items', null, 5, '100$');
 ```
 
-### redirect() - Перенаправления
+---
 
-```php
-// Простое перенаправление
-redirect('/admin/catalog/product');
+## 🌐 Глобальные Хелперы
 
-// Перенаправление с HTTP статусом
-redirect('/admin/login', 301);
+| Функция | Описание |
+| :--- | :--- |
+| `app()` | Доступ к сервис-контейнеру |
+| `registry()` | Доступ к Registry OpenCart |
+| `db($table)` | Инициализация Query Builder |
+| `config()` | Работа с конфигурацией |
+| `setting()` | Работа с настройками БД |
+| `__()` | Перевод строк |
+| `request()` | Доступ к GET/POST данным |
+| `response()` | Управление выводом |
+| `view()` | Рендеринг шаблона |
+| `route()` | Генерация ссылок (с учетом user_token в админке) |
+| `redirect()` | Перенаправление |
+| `session()` | Работа с сессией |
+| `cache()` | Работа с кэшем |
+| `json_response()` | Отправка JSON ответа |
 
-// Перенаправление на внешний URL
-redirect('https://example.com');
+---
 
-// Использование в контроллерах
-public function save() {
-    // Сохранение данных...
-    redirect($this->url->link('catalog/product', 'user_token=' . $this->session->data['user_token']));
-}
-```
-
-## Расширения для Twig шаблонов
-
-Модуль добавляет дополнительные функции в Twig шаблоны:
-
-### Функция __() - Локализация
+## 🎨 Использование в Twig
+Фреймворк автоматически пробрасывает основные функции в шаблоны:
 
 ```twig
-{# В шаблонах Twig #}
-{{ __('text_welcome') }}
-{{ __('button_save') }}
+{# Перевод #}
+{{ __('common/header.text_home') }}
 
-{# С параметрами #}
-{{ __('text_hello', {'name': 'John'}) }}
+{# Генерация ссылки #}
+<a href="{{ route('account/login') }}">Login</a>
+
+{# Вызов контроллера (если нужно) #}
+{{ controller('common/column_left') }}
 ```
 
-### Функция route() - Маршрутизация
+---
 
-```twig
-{# Создание ссылок #}
-<a href="{{ route('product/product', {'product_id': 123}) }}">Товар</a>
-<a href="{{ route('account/login') }}">Вход</a>
+## 🔒 Безопасность
+- Все данные в Query Builder автоматически экранируются.
+- Методы `setting()->set()` и `setting()->delete()` доступны только в контексте администратора (проверка `isAdmin()`).
 
-{# В формах #}
-<form action="{{ route('account/register') }}" method="post">
-    <!-- Поля формы -->
-</form>
-```
+---
 
-### Функция controller() - Загрузка контроллеров
-
-```twig
-{# Загрузка и выполнение контроллера #}
-{{ controller('extension/module/featured') }}
-{{ controller('common/header') }}
-
-{# С параметрами #}
-{{ controller('product/review', {'product_id': 123}) }}
-```
-
-## Практические примеры использования
-
-### Создание пользовательской модели с helper-функциями
-
-```php
-<?php
-class ModelCustomProduct extends Model {
-    
-    public function getProducts() {
-        // Использование registry() для доступа к БД
-        $db = registry('db');
-        
-        $query = $db->query("
-            SELECT * FROM " . DB_PREFIX . "product 
-            WHERE status = '1' 
-            ORDER BY date_added DESC
-        ");
-        
-        return $query->rows;
-    }
-    
-    public function getProductById($productId) {
-        $db = registry('db');
-        $config = config(); // Получение конфигурации
-        
-        $query = $db->query("
-            SELECT * FROM " . DB_PREFIX . "product 
-            WHERE product_id = '" . (int)$productId . "'
-        ");
-        
-        if ($query->num_rows) {
-            $product = $query->row;
-            
-            // Добавление URL изображения
-            if ($product['image']) {
-                $product['image_url'] = config('config_url') . 'image/' . $product['image'];
-            }
-            
-            return $product;
-        }
-        
-        return null;
-    }
-}
-```
-
-### AJAX контроллер с helper-функциями
-
-```php
-<?php
-class ControllerApiProduct extends Controller {
-    
-    public function search() {
-        // Проверка метода запроса
-        if (request()->server['REQUEST_METHOD'] !== 'POST') {
-            response()->addHeader('HTTP/1.1 405 Method Not Allowed');
-            response(json_encode(['error' => 'Method not allowed']));
-            return;
-        }
-        
-        // Получение данных запроса
-        $query = request()->post['query'] ?? '';
-        $limit = (int)(request()->post['limit'] ?? 10);
-        
-        if (strlen($query) < 2) {
-            response()->addHeader('Content-Type: application/json');
-            response(json_encode(['error' => 'Query too short']));
-            return;
-        }
-        
-        // Поиск товаров
-        $db = registry('db');
-        $sql = "
-            SELECT p.product_id, pd.name, p.price, p.image 
-            FROM " . DB_PREFIX . "product p
-            LEFT JOIN " . DB_PREFIX . "product_description pd 
-                ON p.product_id = pd.product_id
-            WHERE pd.name LIKE '%" . $db->escape($query) . "%'
-            AND p.status = '1'
-            LIMIT " . $limit;
-        
-        $result = $db->query($sql);
-        
-        $products = [];
-        foreach ($result->rows as $product) {
-            $products[] = [
-                'id' => $product['product_id'],
-                'name' => $product['name'],
-                'price' => $this->currency->format($product['price']),
-                'image' => $product['image'] ? config('config_url') . 'image/' . $product['image'] : null
-            ];
-        }
-        
-        // Отправка JSON ответа
-        response()->addHeader('Content-Type: application/json');
-        response(json_encode([
-            'success' => true,
-            'products' => $products,
-            'total' => count($products)
-        ]));
-    }
-}
-```
-
-### Создание глобальной функции для логирования
-
-```php
-// В файле system/helper/custom_helper.php
-
-if (!function_exists('write_log')) {
-    /**
-     * Записывает сообщение в лог файл
-     * 
-     * @param string $message Сообщение для записи
-     * @param string $type Тип лога (error, info, debug)
-     */
-    function write_log($message, $type = 'info') {
-        $log = registry('log');
-        $log->write('[' . strtoupper($type) . '] ' . $message);
-    }
-}
-
-// Использование в любом месте приложения
-write_log('User logged in: ' . $userId, 'info');
-write_log('Database error: ' . $error, 'error');
-write_log('Debug info: ' . print_r($data, true), 'debug');
-```
-
-### Работа с сессиями через helper-функции
-
-```php
-// Создание helper-функций для сессий
-if (!function_exists('session_get')) {
-    function session_get($key, $default = null) {
-        $session = registry('session');
-        return isset($session->data[$key]) ? $session->data[$key] : $default;
-    }
-}
-
-if (!function_exists('session_set')) {
-    function session_set($key, $value) {
-        $session = registry('session');
-        $session->data[$key] = $value;
-    }
-}
-
-if (!function_exists('session_flash')) {
-    function session_flash($key, $message) {
-        session_set('flash_' . $key, $message);
-    }
-}
-
-if (!function_exists('session_get_flash')) {
-    function session_get_flash($key) {
-        $message = session_get('flash_' . $key);
-        session_set('flash_' . $key, null); // Удаляем после получения
-        return $message;
-    }
-}
-
-// Использование
-session_flash('success', 'Товар успешно сохранен');
-$message = session_get_flash('success');
-```
-
-## Модификации OCMOD
-
-Модуль вносит следующие изменения в ядро OpenCart:
-
-### 1. Расширение Registry класса
-- Добавляет статический экземпляр для глобального доступа
-- Методы `getInstance()` и `setInstance()`
-- Автоматическое обновление статического экземпляра
-
-### 2. Расширение Twig шаблонизатора
-- Добавляет функции: `__()`, `route()`, `do_action()`, `controller()`
-- Интеграция с системой хуков GDT Framework
-
-### 3. Инициализация в Startup
-- Автоматическая загрузка GDT Framework
-- Обработка ошибок инициализации
-- Загрузка хуков из директории `admin/controller/hook/`
-
-## Интеграция с другими модулями GDT
-
-### Использование с GDT HTTP
-
-```php
-use GbitStudio\GDT\Http\HttpTrait;
-
-class ControllerCustomModule extends Controller {
-    use HttpTrait;
-    
-    public function __construct($registry) {
-        parent::__construct($registry);
-        $this->init(); // Инициализация HTTP компонентов
-    }
-    
-    public function save() {
-        // Использование helper-функций вместе с HTTP модулем
-        $request = registry('gdt_request');
-        $response = registry('gdt_response');
-        
-        $data = $request->all();
-        
-        if ($this->validate($data)) {
-            // Сохранение...
-            $response->success('Данные сохранены');
-        } else {
-            $response->error('Ошибка валидации');
-        }
-    }
-}
-```
-
-### Использование с GDT Validator
-
-```php
-use GbitStudio\GDT\Validator;
-
-function validateProductData($data) {
-    $validator = Validator::make($data, [
-        'name' => 'required|min:2|max:255',
-        'price' => 'required|numeric|min:0'
-    ]);
-    
-    if ($validator->fails()) {
-        // Использование helper-функций для логирования
-        write_log('Validation failed: ' . json_encode($validator->errors()), 'error');
-        return false;
-    }
-    
-    return true;
-}
-```
-
-## Структура модуля
-
-```
-ocm_gdt_helper/
-├── README.md                                      # Этот файл
-└── upload/
-    ├── system/
-    │   ├── gdt_helper_v1.ocmod.xml               # OCMOD модификации
-    │   ├── helper/
-    │   │   └── gdt_helper.php                    # Глобальные функции
-    │   └── library/
-    │       └── gbitstudio/
-    │           └── gdt/
-    │               ├── gdt.php                   # Основной класс GDT
-    │               └── LICENSE                   # Лицензия
-```
-
-## Отладка и диагностика
-
-### Проверка корректной установки
-
-```php
-// Проверка доступности helper-функций
-if (function_exists('registry')) {
-    echo "GDT Helper установлен корректно";
-} else {
-    echo "GDT Helper не установлен";
-}
-
-// Проверка работы registry
-try {
-    $db = registry('db');
-    echo "Доступ к БД: OK";
-} catch (Exception $e) {
-    echo "Ошибка доступа к БД: " . $e->getMessage();
-}
-```
-
-### Логирование ошибок
-
-```php
-// В случае ошибок GDT Framework
-if (function_exists('write_log')) {
-    write_log('GDT Framework error: ' . $error, 'error');
-}
-```
-
-## Лучшие практики
-
-1. **Проверяйте существование функций** перед использованием
-2. **Используйте try-catch** для обработки исключений
-3. **Логируйте ошибки** для отладки
-4. **Не перегружайте глобальное пространство** лишними функциями
-5. **Документируйте пользовательские helper-функции**
-6. **Тестируйте совместимость** с другими расширениями
-
-## Безопасность
-
-- Все данные должны быть валидированы перед использованием
-- Используйте подготовленные запросы для БД
-- Проверяйте права доступа в критических функциях
-- Логируйте подозрительную активность
-
-## Устранение неполадок
-
-### OCMOD не применяется
-1. Проверьте права доступа к файлам
-2. Обновите кэш модификаций: Extensions → Modifications → Refresh
-3. Проверьте логи ошибок в System → Maintenance → Error Logs
-
-### Helper-функции недоступны
-1. Убедитесь, что OCMOD установлен и активен
-2. Проверьте наличие файла `system/helper/gdt_helper.php`
-3. Очистите кэш OpenCart
-
-### Ошибки инициализации
-1. Проверьте логи PHP на наличие синтаксических ошибок
-2. Убедитесь в совместимости версий PHP и OpenCart
-3. Проверьте порядок загрузки модулей
-
-## Поддержка
-
-Этот модуль является основой GDT Framework для OpenCart. Для получения поддержки или сообщения об ошибках обратитесь к документации основного фреймворка.
-
-## Лицензия
-
-Модуль распространяется в соответствии с лицензией основного GDT Framework.
+## 📝 Лицензия
+Распространяется "как есть" под лицензией MIT. Разработано в **GbitStudio**.

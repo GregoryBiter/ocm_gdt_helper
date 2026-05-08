@@ -1,6 +1,6 @@
 <?php
 
-use GbitStudio\GDT;
+use GbitStudio\Gdt\App;
 
 // Global helper function
 if (!function_exists('registry')) {
@@ -14,7 +14,7 @@ if (!function_exists('registry')) {
      */
     function registry($key = null)
     {
-        return GDT::registry($key);
+        return App::registry($key);
     }
 }
 // Global helper function
@@ -29,24 +29,43 @@ if (!function_exists('app')) {
      */
     function app($key = null)
     {
-        return GDT::app($key);
+        return App::app($key);
     }
 }
 
-// Global helper function response
+// Global helper function config
 if (!function_exists('config')) {
     /**
-     * Получает или устанавливает значение конфигурации
-     * Теперь использует класс GDT
+     * Получает или устанавливает значение конфигурации (Runtime)
      *
-     * @param string|null $key Ключ конфигурации
-     * @param mixed|null $data Данные для установки (если требуется)
-     * @return mixed Значение конфигурации или все настройки
-     * @throws Exception Если ключ не найден
+     * @param string|null $key
+     * @param mixed $default
+     * @param mixed|null $data Данные для установки
+     * @return \GbitStudio\Gdt\Config|mixed
      */
-    function config($key = null, $data = null)
+    function config($key = null, $default = null, $data = null)
     {
-        return GDT::config($key, $data);
+        if ($data !== null && $key !== null) {
+            App::config()->set($key, $data);
+            return App::config()->get($key);
+        }
+        return App::config($key, $default);
+    }
+}
+
+// Global helper function setting
+if (!function_exists('setting')) {
+    /**
+     * Получает экземпляр класса Setting или значение из БД
+     *
+     * @param string|null $code Код группы
+     * @param string|null $key Ключ
+     * @param mixed $default
+     * @return \GbitStudio\Gdt\Setting|mixed
+     */
+    function setting($code = null, $key = null, $default = null)
+    {
+        return App::setting($code, $key, $default);
     }
 }
 
@@ -61,7 +80,7 @@ if (!function_exists('response')) {
      */
     function response($content = null)
     {
-        return GDT::response($content);
+        return App::response($content);
     }
 }
 
@@ -77,7 +96,7 @@ if (!function_exists('request')) {
      */
     function request($key = null)
     {
-        return GDT::request($key);
+        return App::request($key);
     }
 }
 
@@ -94,7 +113,7 @@ if (!function_exists('redirect')) {
      */
     function redirect($link, $status = 302)
     {
-        return GDT::redirect($link, $status);
+        return App::redirect($link, $status);
     }
 }
 
@@ -111,7 +130,7 @@ if (!function_exists('view')) {
      */
     function view($route, $data = [])
     {
-        return GDT::view($route, $data);
+        return App::view($route, $data);
     }
 }
 
@@ -129,7 +148,7 @@ if (!function_exists('__')) {
      */
     function __($key = null, $file = null, ...$args)
     {
-        return GDT::__($key, $file, ...$args);
+        return App::__($key, $file, ...$args);
     }
 }
 
@@ -142,7 +161,7 @@ if (!function_exists('is_admin')) {
      */
     function is_admin()
     {
-        return GDT::isAdmin();
+        return App::isAdmin();
     }
 }
 
@@ -159,7 +178,7 @@ if (!function_exists('route')) {
      */
     function route($route, $args = '', $secure = true)
     {
-        return GDT::route($route, $args, $secure);
+        return App::route($route, $args, $secure);
     }
 }
 
@@ -175,7 +194,7 @@ if (!function_exists('session')) {
      */
     function session($key = null, $value = null)
     {
-        return GDT::session($key, $value);
+        return App::session($key, $value);
     }
 }
 
@@ -187,9 +206,40 @@ if (!function_exists('db')) {
      *
      * @return object Объект базы данных
      */
-    function db()
+    function db($table = null)
     {
-        return GDT::db();
+        if ($table !== null) {
+            return App::db()->table($table);
+        }
+        return App::db();
+    }
+}
+
+if (!function_exists('db_query')) {
+    /**
+     * Выполняет SQL-запрос и возвращает массив строк
+     *
+     * @param string $sql
+     * @return array
+     */
+    function db_query($sql)
+    {
+        $query = App::db()->query($sql);
+        return isset($query->rows) ? $query->rows : [];
+    }
+}
+
+if (!function_exists('db_row')) {
+    /**
+     * Выполняет SQL-запрос и возвращает одну строку
+     *
+     * @param string $sql
+     * @return array|null
+     */
+    function db_row($sql)
+    {
+        $query = App::db()->query($sql);
+        return isset($query->row) ? $query->row : null;
     }
 }
 
@@ -206,7 +256,7 @@ if (!function_exists('cache')) {
      */
     function cache($key = null, $value = null, $expire = 3600)
     {
-        return GDT::cache($key, $value, $expire);
+        return App::cache($key, $value, $expire);
     }
 }
 
@@ -222,7 +272,7 @@ if (!function_exists('log_write')) {
      */
     function log_write($message, $filename = 'error.log')
     {
-        GDT::logWrite($message, $filename);
+        App::logWrite($message, $filename);
     }
 }
 
@@ -236,7 +286,7 @@ if (!function_exists('url')) {
      */
     function url()
     {
-        return GDT::url();
+        return App::url();
     }
 }
 
@@ -250,7 +300,7 @@ if (!function_exists('load')) {
      */
     function load()
     {
-        return GDT::load();
+        return App::load();
     }
 }
 
@@ -266,7 +316,7 @@ if (!function_exists('json_response')) {
      */
     function json_response($data, $status = 200)
     {
-        GDT::jsonResponse($data, $status);
+        App::jsonResponse($data, $status);
     }
 }
 
@@ -282,7 +332,67 @@ if (!function_exists('flash')) {
      */
     function flash($key = null, $message = null)
     {
-        return GDT::flash($key, $message);
+        return App::flash($key, $message);
+    }
+}
+
+if (!function_exists('flash_success')) {
+    /**
+     * Устанавливает flash-сообщение об успехе
+     *
+     * @param string $message
+     */
+    function flash_success($message)
+    {
+        return App::flashSuccess($message);
+    }
+}
+
+if (!function_exists('flash_error')) {
+    /**
+     * Устанавливает flash-сообщение об ошибке
+     *
+     * @param string $message
+     */
+    function flash_error($message)
+    {
+        return App::flashError($message);
+    }
+}
+
+if (!function_exists('user')) {
+    /**
+     * Получает текущего авторизованного пользователя
+     *
+     * @return object|null
+     */
+    function user()
+    {
+        return App::user();
+    }
+}
+
+if (!function_exists('admin')) {
+    /**
+     * Получает объект текущего администратора
+     *
+     * @return object|null
+     */
+    function admin()
+    {
+        return App::admin();
+    }
+}
+
+if (!function_exists('customer')) {
+    /**
+     * Получает объект текущего клиента
+     *
+     * @return object|null
+     */
+    function customer()
+    {
+        return App::customer();
     }
 }
 
