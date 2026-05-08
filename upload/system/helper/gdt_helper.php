@@ -256,6 +256,19 @@ if (!function_exists('load')) {
     }
 }
 
+if (!function_exists('model')) {
+    /**
+     * Загружает модель OpenCart если ее нет или использует уже загруженую
+     *
+     * @param string $path Путь к модели
+     * @return object
+     */
+    function model($path)
+    {
+        return App::model($path);
+    }
+}
+
 if (!function_exists('json_response')) {
     function json_response($data, $status = 200)
     {

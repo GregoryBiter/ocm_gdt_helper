@@ -130,6 +130,23 @@ class App
     }
 
     /**
+     * Загружает модель OpenCart если ее нет или использует уже загруженую
+     * 
+     * @param string $path Путь к модели (например, 'catalog/product')
+     * @return object Экземпляр модели
+     */
+    public static function model($path)
+    {
+        $key = 'model_' . str_replace('/', '_', (string)$path);
+
+        if (!self::$registry->has($key)) {
+            self::$registry->get('load')->model($path);
+        }
+
+        return self::$registry->get($key);
+    }
+
+    /**
      * Получает экземпляр приложения GDT или сервис из него
      *
      * @param string|null $key Ключ для получения сервиса из приложения
