@@ -37,6 +37,16 @@ class App
     }
 
     /**
+     * Получает экземпляр контейнера
+     *
+     * @return Container
+     */
+    public static function container()
+    {
+        return self::$container;
+    }
+
+    /**
      * Получение реестра OpenCart
      *
      * @return object
@@ -61,12 +71,9 @@ class App
     public static function app($key = null)
     {
         if ($key !== null) {
-            if (!self::$registry->has($key)) {
-                throw new \Exception('Key not found in registry: ' . $key);
-            }
-            return self::$registry->get($key);
+            return self::get($key);
         }
-        return self::$registry;
+        return self::container();
     }
 
     /**
@@ -336,7 +343,7 @@ class App
      */
     public static function db()
     {
-        return self::get('db');
+        return self::container()->db;
     }
 
     /**
@@ -552,6 +559,44 @@ class App
     public static function customer()
     {
         return self::has('customer') ? self::get('customer') : null;
+    }
+
+    /**
+     * Получение произвольного компонента (Mini DI или Registry)
+     *
+     * @param string $key Ключ компонента
+     * @return mixed
+     */
+    /**
+     * Регистрирует привязку в контейнере
+     */
+    public static function bind($abstract, $concrete = null, $shared = false)
+    {
+        self::$container->bind($abstract, $concrete, $shared);
+    }
+
+    /**
+     * Регистрирует синглтон в контейнере
+     */
+    public static function singleton($abstract, $concrete = null)
+    {
+        self::$container->singleton($abstract, $concrete);
+    }
+
+    /**
+     * Регистрирует готовый экземпляр в контейнере
+     */
+    public static function instance($abstract, $instance)
+    {
+        self::$container->instance($abstract, $instance);
+    }
+
+    /**
+     * Извлекает экземпляр из контейнера
+     */
+    public static function make($abstract)
+    {
+        return self::$container->make($abstract);
     }
 
     /**

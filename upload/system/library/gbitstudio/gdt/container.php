@@ -2,32 +2,23 @@
 
 namespace GbitStudio\Gdt;
 
+use ArrayAccess;
+use Closure;
+use Exception;
+
 /**
- * Класс Container - простое управление зависимостями и ленивая загрузка компонентов
+ * Класс Container - Laravel-подобный сервис-контейнер
  */
-class Container
+class Container implements ArrayAccess
 {
     /** @var object */
-    private $registry;
+    protected $registry;
 
-    /** @var array Хранилище инстансов */
-    private $instances = [];
+    /** @var array Привязки (bindings) */
+    protected $bindings = [];
 
-    /** @var array Определения компонентов */
-    private $definitions = [
-        'config' => [
-            'class' => '\\GbitStudio\\Gdt\\Config',
-            'file'  => 'gbitstudio/gdt/config.php'
-        ],
-        'setting' => [
-            'class' => '\\GbitStudio\\Gdt\\Setting',
-            'file'  => 'gbitstudio/gdt/setting.php'
-        ],
-        'db' => [
-            'class' => '\\GbitStudio\\Gdt\\DB',
-            'file'  => 'gbitstudio/gdt/db.php'
-        ]
-    ];
+    /** @var array Общие экземпляры (singletons) */
+    protected $instances = [];
 
     /**
      * @param object $registry Реестр OpenCart
@@ -35,60 +26,180 @@ class Container
     public function __construct($registry)
     {
         $this->registry = $registry;
+
+        // Регистрация базовых компонентов
+        $this->registerBaseBindings();
     }
 
     /**
-     * Получает экземпляр компонента по имени
-     *
-     * @param string $name
-     * @return mixed
+     * Регистрация стандартных компонентов фреймворка
      */
-    public function get($name)
+    protected function registerBaseBindings()
     {
-        if (isset($this->instances[$name])) {
-            return $this->instances[$name];
+        $this->singleton('config', function ($container, $registry) {
+            if (!class_exists('\\GbitStudio\\Gdt\\Config')) {
+                require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/config.php');
+            }
+            return new Config($registry);
+        });
+
+        $this->singleton('setting', function ($container, $registry) {
+            if (!class_exists('\\GbitStudio\\Gdt\\Setting')) {
+                require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/setting.php');
+            }
+            return new Setting($registry);
+        });
+
+        $this->singleton('db', function ($container, $registry) {
+            if (!class_exists('\\GbitStudio\\Gdt\\DB')) {
+                require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/db.php');
+            }
+            return new DB($registry);
+        });
+    }
+
+    /**
+     * Регистрирует привязку в контейнере
+     *
+     * @param string $abstract
+     * @param mixed $concrete
+     * @param bool $shared
+     */
+    public function bind($abstract, $concrete = null, $shared = false)
+    {
+        if (is_null($concrete)) {
+            $concrete = $abstract;
         }
 
-        if (isset($this->definitions[$name])) {
-            $definition = $this->definitions[$name];
-
-            if (!class_exists($definition['class'])) {
-                $file = DIR_SYSTEM . 'library/' . $definition['file'];
-                if (file_exists($file)) {
-                    require_once($file);
-                }
-            }
-
-            if (class_exists($definition['class'])) {
-                $class = $definition['class'];
-                $this->instances[$name] = new $class($this->registry);
-                return $this->instances[$name];
-            }
-        }
-
-        // Если компонента нет в определениях, пробуем получить из реестра OpenCart
-        return $this->registry->get($name);
+        $this->bindings[$abstract] = compact('concrete', 'shared');
     }
 
     /**
-     * Проверяет наличие компонента
+     * Регистрирует синглтон
      *
-     * @param string $name
-     * @return bool
+     * @param string $abstract
+     * @param mixed $concrete
      */
-    public function has($name)
+    public function singleton($abstract, $concrete = null)
     {
-        return isset($this->instances[$name]) || isset($this->definitions[$name]) || $this->registry->has($name);
+        $this->bind($abstract, $concrete, true);
     }
 
     /**
-     * Регистрирует готовый инстанс в контейнере
+     * Регистрирует готовый экземпляр
      *
-     * @param string $name
+     * @param string $abstract
      * @param mixed $instance
      */
-    public function set($name, $instance)
+    public function instance($abstract, $instance)
     {
-        $this->instances[$name] = $instance;
+        $this->instances[$abstract] = $instance;
+    }
+
+    /**
+     * Извлекает экземпляр из контейнера
+     *
+     * @param string $abstract
+     * @return mixed
+     */
+    public function make($abstract)
+    {
+        // Если это синглтон и он уже создан
+        if (isset($this->instances[$abstract])) {
+            return $this->instances[$abstract];
+        }
+
+        // Если привязки нет, пробуем авто-разрешение (если это имя класса)
+        if (!isset($this->bindings[$abstract])) {
+            if (class_exists($abstract)) {
+                return new $abstract($this->registry);
+            }
+            return null;
+        }
+
+        $concrete = $this->bindings[$abstract]['concrete'];
+        $shared = $this->bindings[$abstract]['shared'];
+
+        // Создаем объект
+        if ($concrete instanceof Closure) {
+            $object = $concrete($this, $this->registry);
+        } else {
+            if (is_string($concrete) && class_exists($concrete)) {
+                $object = new $concrete($this->registry);
+            } else {
+                $object = $concrete;
+            }
+        }
+
+        // Сохраняем, если это синглтон
+        if ($shared) {
+            $this->instances[$abstract] = $object;
+        }
+
+        return $object;
+    }
+
+    /**
+     * Алиас для make() (совместимость)
+     */
+    public function get($abstract)
+    {
+        return $this->make($abstract);
+    }
+
+    /**
+     * Проверяет наличие привязки или экземпляра
+     */
+    public function has($abstract)
+    {
+        return isset($this->bindings[$abstract]) || isset($this->instances[$abstract]);
+    }
+
+    /**
+     * Алиас для has() (совместимость)
+     */
+    public function bound($abstract)
+    {
+        return $this->has($abstract);
+    }
+
+    /**
+     * Алиас для instance() (совместимость)
+     */
+    public function set($abstract, $instance)
+    {
+        $this->instance($abstract, $instance);
+    }
+
+    /**
+     * Магический доступ к сервисам
+     */
+    public function __get($name)
+    {
+        return $this->make($name);
+    }
+
+    // --- Реализация ArrayAccess ---
+
+    public function offsetExists($offset): bool
+    {
+        return $this->has($offset);
+    }
+
+    public function offsetGet($offset): mixed
+    {
+        return $this->make($offset);
+    }
+
+    public function offsetSet($offset, $value): void
+    {
+        $this->bind($offset, $value instanceof Closure ? $value : function () use ($value) {
+            return $value;
+        });
+    }
+
+    public function offsetUnset($offset): void
+    {
+        unset($this->bindings[$offset], $this->instances[$offset]);
     }
 }
