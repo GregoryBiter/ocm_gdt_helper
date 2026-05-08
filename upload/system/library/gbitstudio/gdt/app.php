@@ -137,13 +137,13 @@ class App
      */
     public static function model($path)
     {
-        $key = 'model_' . str_replace('/', '_', (string)$path);
+        $key = 'model_' . str_replace('/', '_', (string) $path);
 
-        if (!self::$registry->has($key)) {
-            self::$registry->get('load')->model($path);
+        if (!self::has($key)) {
+            self::get('load')->model($path);
         }
 
-        return self::$registry->get($key);
+        return self::get($key);
     }
 
     /**
