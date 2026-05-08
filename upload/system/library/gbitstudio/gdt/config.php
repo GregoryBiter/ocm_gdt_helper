@@ -10,16 +10,10 @@ use GbitStudio\Gdt\App;
 class Config
 {
     /** @var object */
-    private $registry;
-    /** @var object */
     private $config;
 
-    /**
-     * @param object $registry Реестр OpenCart
-     */
-    public function __construct($registry)
+    public function __construct()
     {
-        $this->registry = $registry;
         $this->config = App::get('config');
     }
 

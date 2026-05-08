@@ -1,45 +1,50 @@
-{# Пример использования GDT Helper в Twig шаблонах #}
+<div class="product-container">
+    {# 1. Использование умного перевода (через фильтр или функцию, если зарегистрирована) #}
+    <h1>{{ __("text_product_detail") }}</h1>
 
-<div class="gdt-example">
-    <h1>{{ title }}</h1>
-    
-    {# 1. Использование новой функции перевода __ #}
-    <p>
-        {# Простой перевод из уже загруженного файла #}
-        <strong>Кнопка:</strong> {{ __('button_save') }}
-    </p>
-    
-    <p>
-        {# Автоматическая загрузка конкретного файла и ключа через точку #}
-        <strong>Главная:</strong> {{ __('common/header.text_home') }}
-    </p>
-    
-    <p>
-        {# Перевод с аргументами (sprintf) #}
-        {# Если в ключе 'У вас %s товаров': #}
-        <strong>Корзина:</strong> {{ __('checkout/cart.text_items', null, 3, '500 руб') }}
-    </p>
-
-    {# 2. Генерация ссылок через route() #}
-    <div class="links">
-        <a href="{{ route('account/login') }}" class="btn btn-primary">
-            {{ __('account/login.text_login') }}
-        </a>
-        
-        <a href="{{ route('checkout/cart', {'remove': 123}) }}">
-            Удалить товар
-        </a>
-    </div>
-
-    {# 3. Условная логика с использованием хелперов #}
-    {% if is_admin() %}
-        <div class="alert alert-info">
-            Вы вошли как администратор.
+    {% if flash('success') %}
+        <div class="alert alert-success">
+            {{ flash('success') }}
         </div>
     {% endif %}
 
-    {# 4. Загрузка других контроллеров (аналог $this->load->controller) #}
-    <div class="sidebar">
-        {{ controller('common/column_left') }}
+    {% if flash('error') %}
+        <div class="alert alert-danger">
+            {{ flash('error') }}
+        </div>
+    {% endif %}
+
+    <div class="product-info">
+        <h3>{{ product.name }}</h3>
+        <p>Модель: {{ product.model }}</p>
+        <p>Цена: {{ product.price|number_format(2) }}</p>
     </div>
+
+    <div class="actions">
+        {# 2. Генерация ссылок через хелпер route() #}
+        <a href="{{ route('common/home') }}" class="btn btn-default">
+            {{ __("button_back") }}
+        </a>
+
+        <form action="{{ route('checkout/cart/add') }}" method="post">
+            <input type="hidden" name="product_id" value="{{ product.product_id }}">
+            <button type="submit" class="btn btn-primary">
+                {{ __("button_cart") }}
+            </button>
+        </form>
+    </div>
+
+    {# 3. Доступ к сессии напрямую (если требуется) #}
+    {% if session('last_viewed_product') %}
+        <div class="history">
+            <small>ID последнего просмотренного товара: {{ session('last_viewed_product') }}</small>
+        </div>
+    {% endif %}
+    
+    {# 4. Работа с конфигом #}
+    {% if config('config_customer_online') %}
+        <div class="online-status">
+            <span class="label label-success">Мы онлайн!</span>
+        </div>
+    {% endif %}
 </div>

@@ -1,64 +1,59 @@
 <?php
-/**
- * Пример использования GDT Helper в контроллере OpenCart
- */
-class ControllerExtensionModuleGdtExample extends Controller
+
+class ControllerExample extends Controller
 {
     public function index()
     {
-        // 1. Использование глобальных хелперов
+        // 1. Работа с входящими данными (Request Service)
+        $productId = request('product_id'); // GET/POST
+        $filter = request()->query('filter', 'default');
+        $data = request()->post('data');
 
-        // Работа с конфигом (Runtime)
-        config('gdt_test_mode', null, true);
-        $is_test = config('gdt_test_mode');
+        // 2. Работа с базой данных (Query Builder)
+        // Получаем товар и связанные данные одной цепочкой
+        $product = db('product p')
+            ->select(['p.*', 'pd.name'])
+            ->join('product_description pd', 'p.product_id', '=', 'pd.product_id')
+            ->where('p.product_id', $productId)
+            ->where('pd.language_id', (int) config('config_language_id'))
+            ->first();
 
-        // Работа с конфигом через класс
-        $site_name = \GbitStudio\Gdt\App::config()->get('config_name');
+        if (!$product) {
+            flash_error(__('error_not_found'));
+            return response()->redirect(route('common/home'));
+        }
 
-        // Использование нового класса Setting через App::setting()
-        // Работа с БД настройками (таблица setting)
-        $module_settings = \GbitStudio\Gdt\App::setting()->get('module_gdt_example');
-        $status = \GbitStudio\Gdt\App::setting()->get('module_gdt_example', 'status', 0);
+        // 3. Работа с настройками (Config & Setting)
+        $limit = config('config_limit_admin', 20);
+        $myModuleSettings = setting('module_my_module'); // Получить весь массив настроек
 
-        // Работа с переводами (новые функции)
-        // Автоматическая загрузка файла и получение ключа
-        $title = __('common/header.text_home');
+        // 4. Логика перевода (Language Service)
+        $this->document->setTitle(__('catalog/product.text_title', null, $product['name']));
 
-        // Перевод с форматированием (sprintf)
-        // Допустим в языке: 'У вас %s товаров на сумму %s'
-        $cart_text = __('checkout/cart.text_items', null, 5, '100$');
+        // 5. Работа с сессией и Flash-сообщениями
+        session('last_viewed_product', $productId);
+        flash('success', __('text_success_view'));
 
-        // 2. Использование статического класса GDT напрямую
-        \GbitStudio\Gdt\App::logWrite('Пример записи в лог через GDT');
+        // 6. Подготовка данных для View
+        $data['product'] = $product;
+        $data['back_link'] = route('common/home');
+        $data['action'] = route('checkout/cart/add');
 
-        // Получение данных из сессии
-        $token = \GbitStudio\Gdt\App::session('user_token');
+        // 7. Рендеринг через хелпер
+        return response(view('example/template', $data));
+    }
 
-        // 3. Работа с базой данных через Query Builder (Laravel-style)
-        $latest_products = db('product')
-            ->select(['product_id', 'model', 'price'])
+    public function api()
+    {
+        // Пример JSON ответа
+        $results = db('product')
             ->where('status', 1)
-            ->where('quantity', '>', 0)
-            ->orderBy('date_added', 'DESC')
             ->limit(5)
             ->get();
 
-        // 4. Формирование JSON-ответа
-        if (request('ajax')) {
-            return json_response([
-                'success' => true,
-                'message' => __('account/login.text_success'),
-                'data' => $this->load->view('extension/module/gdt_example', ['title' => $title])
-            ]);
-        }
-
-        // 4. Работа с кешем
-        $data = cache('my_custom_data');
-        if (!$data) {
-            $data = ['some' => 'data'];
-            cache('my_custom_data', $data);
-        }
-
-        return view('extension/module/gdt_example', ['title' => $title]);
+        return response()->json([
+            'success' => true,
+            'data' => $results
+        ], 201);
     }
 }

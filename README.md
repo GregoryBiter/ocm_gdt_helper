@@ -1,156 +1,156 @@
-# App Framework Helper for OpenCart
+# OpenCart GDT Helper (v1.0.0)
 
-## Описание
-Модуль **App Helper** — это современная надстройка над OpenCart 3.x, которая превращает классическую разработку в комфортный процесс с использованием Laravel-подобного синтаксиса. Модуль предоставляет централизованный сервис-контейнер, мощный Query Builder и набор глобальных помощников (helpers) для быстрого доступа к ядру OpenCart.
-
----
+Современная надстройка над OpenCart 3.x/4.x, привносящая архитектурные паттерны Laravel (Dependency Injection Container, Query Builder, Fluent Response/Request) в экосистему OpenCart.
 
 ## 🚀 Основные возможности
-- **Service Container (DI)** — ленивая загрузка и централизованное управление компонентами.
-- **Fluent Query Builder** — работа с БД в стиле Laravel (`db('table')->where(...)->get()`).
-- **Глобальные Helpers** — функции `app()`, `config()`, `setting()`, `db()`, `__()` и др.
-- **Умные переводы** — поддержка dot-синтаксиса и автоматическая загрузка языковых файлов.
-- **Modern Architecture** — использование пространств имен `GbitStudio\Gdt`.
-- **Twig Integration** — доступ ко всем хелперам прямо из шаблонов.
+- **Service Container**: Полноценный DI-контейнер с поддержкой `singleton` и `bind`.
+- **Query Builder**: Удобный построитель SQL-запросов с автоматическим экранированием.
+- **Fluent Response**: Laravel-style управление ответами (JSON, статусы, заголовки).
+- **Request Service**: Удобная работа с GET/POST данными.
+- **Global Helpers**: Набор глобальных функций для быстрого доступа к системе.
 
 ---
 
-## 📦 Установка
-1. Скопируйте содержимое папки `upload/` в корень вашего сайта.
-2. Установите модификатор `system/gdt_helper_v1.ocmod.xml` через панель OpenCart.
-3. Обновите кэш модификаторов.
+## 📂 Структура системы
+Файлы ядра располагаются в `system/library/gbitstudio/gdt/`:
+- `app.php` — Точка входа и бутстраппер сервисов.
+- `container.php` — Ядро DI-контейнера.
+- `db.php` — Менеджер базы данных.
+- `querybuilder.php` — Построитель SQL-запросов.
+- `session.php` — Сервис сессий и Flash-сообщений.
+- `response.php` — Сервис исходящих ответов.
+- `request.php` — Сервис входящих запросов.
+- `url.php` — Улучшенная работа с URL и токенами.
+- `language.php` — Продвинутые переводы (dot-syntax).
+- `cache.php` — Обертка над кешем.
 
-### Структура файлов
-```text
-system/library/gbitstudio/gdt/
-├── app.php        # Ядро фреймворка (Service Locator)
-├── container.php  # Контейнер зависимостей (DI)
-├── db.php         # Query Builder
-├── config.php     # Работа с runtime-конфигом
-└── setting.php    # Работа с настройками в БД
-```
+Глобальные хелперы: `system/helper/gdt_helper.php`.
 
 ---
 
-## 🛠️ Основные компоненты
+## 🛠️ Использование
 
-### 1. Сервис-контейнер и класс `App`
-Класс `App` является точкой входа. Он автоматически инициализируется при старте OpenCart.
+### 1. Доступ к сервисам (Контейнер)
+Класс `App` теперь является чистым сервис-локатором. Основной способ работы — через глобальные хелперы или `App::make()`.
 
 ```php
 use GbitStudio\Gdt\App;
 
-// Получение сервисов
-$db = App::db();
-$config = App::config();
-$setting = App::setting();
+// Получение через контейнер
+$db = App::make('db');
+$session = App::make('session');
 
-// Прокси к Registry OpenCart
+// Доступ к оригинальному Registry OpenCart
 $cart = App::get('cart');
-$customer = App::customer();
+$load = App::get('load');
 ```
 
 ### 2. Работа с базой данных (Query Builder)
-Вы можете использовать хелпер `db('table')` для быстрого построения запросов.
+Хелпер `db('table')` всегда возвращает **новый** экземпляр построителя, что исключает смешивание данных.
 
 ```php
-// Выборка данных
+// Выборка
 $products = db('product')
     ->select(['product_id', 'model'])
     ->where('status', 1)
     ->where('price', '>', 100)
     ->orderBy('date_added', 'desc')
     ->limit(10)
-    ->get(); // возвращает массив
+    ->get(); // Array of rows
 
-// Одна строка
-$category = db('category')->where('category_id', 15)->first(); // или ->row()
+// Обновление
+db('customer')->where('customer_id', 5)->update(['firstname' => 'Dmitry']);
 
-// CRUD операции
-$id = db('customer')->insert(['firstname' => 'Ivan', 'email' => 'test@test.com']);
-db('customer')->where('customer_id', $id)->update(['firstname' => 'Dmitry']);
-db('customer')->where('customer_id', $id)->delete();
+// Удаление
+db('cart')->where('customer_id', 5)->delete();
+
+// Сложные запросы
+$data = db('product p')
+    ->join('product_description pd', 'p.product_id', '=', 'pd.product_id')
+    ->where('pd.language_id', 1)
+    ->first();
 ```
 
-### 3. Быстрые SQL-запросы (Raw SQL)
-Если нужен обычный SQL, используйте `db_query` и `db_row`.
+### 3. HTTP Ответы (Response)
+Fluent-интерфейс для управления ответом:
 
 ```php
-$rows = db_query("SELECT * FROM " . DB_PREFIX . "product WHERE status = 1");
-$row = db_row("SELECT * FROM " . DB_PREFIX . "product WHERE product_id = 1");
+// JSON ответ с кодом 201
+return json_response(['status' => 'success'], 201);
+
+// Или расширенно через хелпер response()
+return response('Success', 200)
+    ->header('X-Custom-Header: value')
+    ->header('Content-Type: text/plain');
+
+// Редирект
+return response()->redirect(route('common/home'));
 ```
 
-### 4. Конфигурация и Настройки
-Мы разделяем **Config** (runtime настройки OC) и **Setting** (настройки из таблицы `setting`).
+### 4. Запросы (Request)
+```php
+// Получение значения (сначала GET, потом POST)
+$id = request('id');
+
+// Конкретные методы
+$token = request()->query('user_token');
+$name = request()->post('firstname');
+
+// Нативный объект OpenCart
+$files = request()->files;
+```
+
+### 5. Сессии и Flash-сообщения
+```php
+// Работа с данными
+session('my_key', 'value');
+$val = session('my_key');
+
+// Flash-сообщения (удаляются после первого чтения)
+flash('success', 'Товар добавлен!');
+flash_error('Ошибка валидации');
+
+// В шаблоне:
+echo flash('success');
+```
+
+### 6. Переводы и URL
+```php
+// Умный перевод (автоматическая загрузка файлов через точку)
+echo __('account/login.text_forgotten'); 
+
+// С подстановкой переменных (sprintf)
+echo __('text_welcome', null, $username);
+
+// Умная генерация ссылок (авто-подстановка user_token в админке)
+$url = route('catalog/product', ['product_id' => 10]);
+```
+
+---
+
+## 📖 Примеры использования в проекте
+
+Полные примеры реализации вы можете найти в папке `example/`:
+- **Контроллер**: [controller.php](file:///home/gregorybiter/%D0%A0%D0%B0%D0%B1%D0%BE%D1%87%D0%B8%D0%B9%20%D1%81%D1%82%D0%BE%D0%BB/ocm_gdt_helper/example/controller.php) — обработка запросов, работа с БД, сессиями и ответами.
+- **Модель**: [model.php](file:///home/gregorybiter/%D0%A0%D0%B0%D0%B1%D0%BE%D1%87%D0%B8%D0%B9%20%D1%81%D1%82%D0%BE%D0%BB/ocm_gdt_helper/example/model.php) — сложные выборки через Query Builder и использование кеша.
+- **Шаблон (Twig)**: [template.twig](file:///home/gregorybiter/%D0%A0%D0%B0%D0%B1%D0%BE%D1%87%D0%B8%D0%B9%20%D1%81%D1%82%D0%BE%D0%BB/ocm_gdt_helper/example/template.twig) — использование хелперов прямо в представлении.
+
+---
+
+## 🔧 Кастомизация (DI)
+Вы можете регистрировать свои сервисы в контейнере:
 
 ```php
-// Runtime Config
-$name = config('config_name');
-config('my_runtime_key', null, 'value'); // Установка
+App::singleton('my_service', function() {
+    return new \MyNamespace\MyService();
+});
 
-// Persistent Settings (DB)
-$val = setting('module_my', 'status', 'default');
-setting()->set('module_my', ['status' => 1]); // Только в админке
-```
-
-### 5. Переводы и Языки `__()`
-Хелпер `__()` автоматически загружает файлы, если это необходимо.
-
-```php
-// Обычный перевод
-echo __('text_home');
-
-// С автозагрузкой файла (синтаксис 'файл.ключ')
-echo __('common/header.text_home');
-
-// С передачей аргументов (sprintf)
-echo __('checkout/cart.text_items', null, 5, '100$');
+// Использование
+$service = App::make('my_service');
 ```
 
 ---
 
-## 🌐 Глобальные Хелперы
-
-| Функция | Описание |
-| :--- | :--- |
-| `app()` | Доступ к сервис-контейнеру |
-| `registry()` | Доступ к Registry OpenCart |
-| `db($table)` | Инициализация Query Builder |
-| `config()` | Работа с конфигурацией |
-| `setting()` | Работа с настройками БД |
-| `__()` | Перевод строк |
-| `request()` | Доступ к GET/POST данным |
-| `response()` | Управление выводом |
-| `view()` | Рендеринг шаблона |
-| `route()` | Генерация ссылок (с учетом user_token в админке) |
-| `redirect()` | Перенаправление |
-| `session()` | Работа с сессией |
-| `cache()` | Работа с кэшем |
-| `json_response()` | Отправка JSON ответа |
-
----
-
-## 🎨 Использование в Twig
-Фреймворк автоматически пробрасывает основные функции в шаблоны:
-
-```twig
-{# Перевод #}
-{{ __('common/header.text_home') }}
-
-{# Генерация ссылки #}
-<a href="{{ route('account/login') }}">Login</a>
-
-{# Вызов контроллера (если нужно) #}
-{{ controller('common/column_left') }}
-```
-
----
-
-## 🔒 Безопасность
-- Все данные в Query Builder автоматически экранируются.
-- Методы `setting()->set()` и `setting()->delete()` доступны только в контексте администратора (проверка `isAdmin()`).
-
----
-
-## 📝 Лицензия
-Распространяется "как есть" под лицензией MIT. Разработано в **GbitStudio**.
+## 📦 Установка
+1. Скопируйте содержимое папки `upload` в корень вашего сайта.
+2. Фреймворк инициализируется автоматически через модификатор или в файле `startup.php`.
