@@ -65,15 +65,15 @@ if (!function_exists('setting')) {
 }
 
 if (!function_exists('response')) {
-    function response($content = null)
+    function response($content = null, $status = 200)
     {
-        $response = App::get('response');
+        $response = App::make('response');
 
-        if ($content !== null) {
-            $response->setOutput($content);
+        if ($content === null) {
+            return $response;
         }
 
-        return $response;
+        return $response->status($status)->content($content);
     }
 }
 
@@ -88,19 +88,13 @@ if (!function_exists('request')) {
      */
     function request($key = null)
     {
-        $request = App::get('request');
+        $request = App::make('request');
 
-        if ($key !== null) {
-            if (isset($request->get[$key])) {
-                return $request->get[$key];
-            }
-            if (isset($request->post[$key])) {
-                return $request->post[$key];
-            }
-            return null;
+        if ($key === null) {
+            return $request;
         }
 
-        return $request;
+        return $request->get($key);
     }
 }
 
@@ -115,7 +109,7 @@ if (!function_exists('redirect')) {
      */
     function redirect($link, $status = 302)
     {
-        return App::get('response')->redirect($link, $status);
+        return App::make('response')->redirect($link, $status);
     }
 }
 
@@ -147,34 +141,7 @@ if (!function_exists('__')) {
      */
     function __($key = null, $file = null, ...$args)
     {
-        if ($key === null && $file === null) {
-            return App::get('language')->all();
-        }
-
-        // Авто-определение файла из ключа (например, 'common/header.text_home')
-        if ($file === null && $key !== null && strpos($key, '.') !== false) {
-            $last_dot = strrpos($key, '.');
-            $file = substr($key, 0, $last_dot);
-            $key = substr($key, $last_dot + 1);
-        }
-
-        if ($file !== null) {
-            $data = App::get('load')->language($file);
-
-            if ($key === null || $key === '') {
-                return $data;
-            }
-
-            $text = isset($data[$key]) ? $data[$key] : $key;
-        } else {
-            $text = App::get('language')->get($key);
-        }
-
-        if (!empty($args) && is_string($text)) {
-            return vsprintf($text, $args);
-        }
-
-        return $text;
+        return App::make('language')->translate($key, $file, ...$args);
     }
 }
 
@@ -187,49 +154,14 @@ if (!function_exists('is_admin')) {
      */
     function is_admin()
     {
-        if (defined('DIR_CATALOG')) {
-            return true;
-        }
-
-        try {
-            if (App::has('user') && App::get('user')->isLogged()) {
-                return true;
-            }
-        } catch (\Exception $e) {
-        }
-
-        return false;
+        return App::make('url')->isAdmin();
     }
 }
 
 if (!function_exists('route')) {
     function route($route, $args = '', $secure = true)
     {
-        if (is_array($args)) {
-            $queryString = '';
-            foreach ($args as $key => $value) {
-                if (strlen($queryString) > 0) {
-                    $queryString .= '&';
-                }
-                $queryString .= urlencode($key) . '=' . urlencode($value);
-            }
-            $args = $queryString;
-        }
-
-        if (is_admin()) {
-            try {
-                $session = App::get('session');
-                $user_token = isset($session->data['user_token']) ? $session->data['user_token'] : '';
-
-                if ($user_token && strpos($args, 'user_token=') === false) {
-                    $prefix = (strlen($args) > 0) ? '&' : '';
-                    $args = 'user_token=' . $user_token . $prefix . $args;
-                }
-            } catch (\Exception $e) {
-            }
-        }
-
-        return App::get('url')->link($route, $args, $secure);
+        return App::make('url')->link($route, $args, $secure);
     }
 }
 
@@ -280,15 +212,14 @@ if (!function_exists('db_row')) {
 if (!function_exists('cache')) {
     function cache($key = null, $value = null, $expire = 3600)
     {
-        $cache = App::get('cache');
+        $cache = App::make('cache');
 
         if ($key === null) {
             return $cache;
         }
 
         if ($value !== null) {
-            $cache->set($key, $value);
-            return $value;
+            return $cache->set($key, $value, $expire);
         }
 
         return $cache->get($key);
@@ -314,7 +245,7 @@ if (!function_exists('log_write')) {
 if (!function_exists('url')) {
     function url()
     {
-        return App::get('url');
+        return App::make('url');
     }
 }
 
@@ -328,14 +259,7 @@ if (!function_exists('load')) {
 if (!function_exists('json_response')) {
     function json_response($data, $status = 200)
     {
-        $response = App::get('response');
-        $response->addHeader('Content-Type: application/json');
-
-        if ($status !== 200) {
-            $response->addHeader('HTTP/1.1 ' . $status);
-        }
-
-        $response->setOutput(json_encode($data));
+        return App::make('response')->json($data, $status);
     }
 }
 

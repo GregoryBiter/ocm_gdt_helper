@@ -26,43 +26,6 @@ class Container implements ArrayAccess
     public function __construct($registry)
     {
         $this->registry = $registry;
-
-        // Регистрация базовых компонентов
-        $this->registerBaseBindings();
-    }
-
-    /**
-     * Регистрация стандартных компонентов фреймворка
-     */
-    protected function registerBaseBindings()
-    {
-        $this->singleton('config', function ($container, $registry) {
-            if (!class_exists('\\GbitStudio\\Gdt\\Config')) {
-                require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/config.php');
-            }
-            return new Config($registry);
-        });
-
-        $this->singleton('setting', function ($container, $registry) {
-            if (!class_exists('\\GbitStudio\\Gdt\\Setting')) {
-                require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/setting.php');
-            }
-            return new Setting($registry);
-        });
-
-        $this->singleton('db', function ($container, $registry) {
-            if (!class_exists('\\GbitStudio\\Gdt\\DB')) {
-                require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/db.php');
-            }
-            return new DB($registry);
-        });
-
-        $this->singleton('session', function ($container, $registry) {
-            if (!class_exists('\\GbitStudio\\Gdt\\Session')) {
-                require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/session.php');
-            }
-            return new Session($registry);
-        });
     }
 
     /**
