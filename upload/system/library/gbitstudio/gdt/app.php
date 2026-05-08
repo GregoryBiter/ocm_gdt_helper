@@ -271,29 +271,6 @@ class App
     }
 
     /**
-     * Получает или устанавливает значение в сессии
-     *
-     * @param string|null $key Ключ сессии
-     * @param mixed|null $value Значение для установки
-     * @return mixed Значение из сессии или объект сессии
-     */
-    public static function session($key = null, $value = null)
-    {
-        $session = self::get('session');
-
-        if ($key === null) {
-            return $session;
-        }
-
-        if ($value !== null) {
-            $session->data[$key] = $value;
-            return $value;
-        }
-
-        return isset($session->data[$key]) ? $session->data[$key] : null;
-    }
-
-    /**
      * Получает объект URL
      *
      * @return object Объект URL
@@ -375,57 +352,6 @@ class App
     public static function load()
     {
         return self::get('load');
-    }
-
-    /**
-     * Устанавливает или получает flash-сообщение
-     *
-     * @param string|null $key Ключ сообщения
-     * @param string|null $message Текст сообщения
-     * @return mixed Flash-сообщение или null
-     */
-    public static function flash($key = null, $message = null)
-    {
-        if ($key === null) {
-            return self::session('flash_messages', []);
-        }
-
-        if ($message !== null) {
-            $flash_messages = self::session('flash_messages', []);
-            $flash_messages[$key] = $message;
-            self::session('flash_messages', $flash_messages);
-            return $message;
-        }
-
-        $flash_messages = self::session('flash_messages', []);
-        if (isset($flash_messages[$key])) {
-            $message = $flash_messages[$key];
-            unset($flash_messages[$key]);
-            self::session('flash_messages', $flash_messages);
-            return $message;
-        }
-
-        return null;
-    }
-
-    /**
-     * Устанавливает flash-сообщение об успехе
-     *
-     * @param string $message
-     */
-    public static function flashSuccess($message)
-    {
-        return self::flash('success', $message);
-    }
-
-    /**
-     * Устанавливает flash-сообщение об ошибке
-     *
-     * @param string $message
-     */
-    public static function flashError($message)
-    {
-        return self::flash('error', $message);
     }
 
     /**

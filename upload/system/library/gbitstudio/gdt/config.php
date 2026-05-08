@@ -2,6 +2,8 @@
 
 namespace GbitStudio\Gdt;
 
+use GbitStudio\Gdt\App;
+
 /**
  * Класс Config - управление runtime-конфигурацией OpenCart (объект Config)
  */
@@ -18,7 +20,7 @@ class Config
     public function __construct($registry)
     {
         $this->registry = $registry;
-        $this->config = $registry->get('config');
+        $this->config = App::get('config');
     }
 
     /**

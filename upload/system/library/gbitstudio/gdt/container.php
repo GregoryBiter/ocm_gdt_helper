@@ -56,6 +56,13 @@ class Container implements ArrayAccess
             }
             return new DB($registry);
         });
+
+        $this->singleton('session', function ($container, $registry) {
+            if (!class_exists('\\GbitStudio\\Gdt\\Session')) {
+                require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/session.php');
+            }
+            return new Session($registry);
+        });
     }
 
     /**

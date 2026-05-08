@@ -236,18 +236,17 @@ if (!function_exists('route')) {
 if (!function_exists('session')) {
     function session($key = null, $value = null)
     {
-        $session = App::get('session');
+        $session = App::make('session');
 
         if ($key === null) {
             return $session;
         }
 
         if ($value !== null) {
-            $session->data[$key] = $value;
-            return $value;
+            return $session->set($key, $value);
         }
 
-        return isset($session->data[$key]) ? $session->data[$key] : null;
+        return $session->get($key);
     }
 }
 
@@ -343,26 +342,7 @@ if (!function_exists('json_response')) {
 if (!function_exists('flash')) {
     function flash($key = null, $message = null)
     {
-        if ($key === null) {
-            return session('flash_messages', []);
-        }
-
-        if ($message !== null) {
-            $flash_messages = session('flash_messages', []);
-            $flash_messages[$key] = $message;
-            session('flash_messages', $flash_messages);
-            return $message;
-        }
-
-        $flash_messages = session('flash_messages', []);
-        if (isset($flash_messages[$key])) {
-            $message = $flash_messages[$key];
-            unset($flash_messages[$key]);
-            session('flash_messages', $flash_messages);
-            return $message;
-        }
-
-        return null;
+        return App::make('session')->flash($key, $message);
     }
 }
 
@@ -384,24 +364,10 @@ if (!function_exists('user')) {
     function user()
     {
         if (is_admin()) {
-            return admin();
+            return App::has('user') ? App::get('user') : null;
         } else {
-            return customer();
+            return App::has('customer') ? App::get('customer') : null;
         }
-    }
-}
-
-if (!function_exists('admin')) {
-    function admin()
-    {
-        return App::has('user') ? App::get('user') : null;
-    }
-}
-
-if (!function_exists('customer')) {
-    function customer()
-    {
-        return App::has('customer') ? App::get('customer') : null;
     }
 }
 
