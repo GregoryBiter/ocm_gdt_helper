@@ -8,18 +8,11 @@ namespace GbitStudio\Gdt;
 class Cache
 {
     /** @var object */
-    protected $registry;
-
-    /** @var object */
     protected $cache;
 
-    /**
-     * @param object $registry
-     */
-    public function __construct($registry)
+    public function __construct()
     {
-        $this->registry = $registry;
-        $this->cache = $registry->get('cache');
+        $this->cache = App::get('cache');
     }
 
     /**

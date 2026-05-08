@@ -231,7 +231,7 @@ if (!function_exists('log_write')) {
     {
         try {
             App::get('log')->write($message);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             if (defined('DIR_LOGS')) {
                 $logPath = constant('DIR_LOGS') . $filename;
             } else {
@@ -306,8 +306,8 @@ if (!function_exists('gdt_check_function_conflict')) {
 
                 error_log("[GDT] Function conflict detected: {$function_name} already exists in {$file}:{$line}");
                 return true;
-            } catch (Exception $e) {
-                error_log("[GDT] Could not analyze function conflict for: {$function_name}");
+            } catch (\Throwable $e) {
+                error_log("[GDT] Could not analyze function conflict for: {$function_name} — " . $e->getMessage());
                 return true;
             }
         }

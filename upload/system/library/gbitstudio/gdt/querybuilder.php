@@ -8,9 +8,6 @@ namespace GbitStudio\Gdt;
 class QueryBuilder
 {
     /** @var object */
-    protected $registry;
-
-    /** @var object */
     protected $db;
 
     /** @var string */

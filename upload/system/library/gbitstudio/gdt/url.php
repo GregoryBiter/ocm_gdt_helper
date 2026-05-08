@@ -47,7 +47,7 @@ class Url
                     $prefix = (strlen($args) > 0) ? '&' : '';
                     $args = 'user_token=' . $user_token . $prefix . $args;
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
             }
         }
 
@@ -70,7 +70,7 @@ class Url
             if ($user && $user->isLogged()) {
                 return true;
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
         }
 
         return false;
