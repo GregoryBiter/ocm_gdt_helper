@@ -7,19 +7,13 @@ namespace GbitStudio\Gdt;
  */
 class Response
 {
-    /** @var object */
-    protected $registry;
 
     /** @var object */
     protected $response;
 
-    /**
-     * @param object $registry
-     */
-    public function __construct($registry)
+    public function __construct()
     {
-        $this->registry = $registry;
-        $this->response = $registry->get('response');
+        $this->response = App::get('response');
     }
 
     /**
@@ -34,7 +28,7 @@ class Response
         $this->header('Content-Type: application/json');
         $this->status($status);
         $this->content(json_encode($data));
-        
+
         return $this;
     }
 

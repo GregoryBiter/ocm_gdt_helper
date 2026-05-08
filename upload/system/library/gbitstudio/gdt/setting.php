@@ -7,16 +7,6 @@ namespace GbitStudio\Gdt;
  */
 class Setting
 {
-    /** @var object */
-    private $registry;
-
-    /**
-     * @param object $registry Реестр OpenCart
-     */
-    public function __construct($registry)
-    {
-        $this->registry = $registry;
-    }
 
     /**
      * Получает настройки из базы данных через модель setting/setting
@@ -29,8 +19,8 @@ class Setting
      */
     public function get($code, $key = null, $default = null, $store_id = 0)
     {
-        $this->registry->get('load')->model('setting/setting');
-        $model = $this->registry->get('model_setting_setting');
+        App::get('load')->model('setting/setting');
+        $model = App::get('model_setting_setting');
 
         if ($model) {
             $data = $model->getSetting($code, (int) $store_id);
@@ -56,12 +46,12 @@ class Setting
     public function set($code, array $data, $store_id = 0)
     {
         // В каталоге модель setting/setting не имеет методов записи и они там не нужны
-        if (!App::isAdmin()) {
+        if (!App::make('url')->isAdmin()) {
             return false;
         }
 
-        $this->registry->get('load')->model('setting/setting');
-        $model = $this->registry->get('model_setting_setting');
+        App::get('load')->model('setting/setting');
+        $model = App::get('model_setting_setting');
 
         if ($model && method_exists($model, 'editSetting')) {
             $model->editSetting($code, $data, (int) $store_id);
@@ -80,12 +70,12 @@ class Setting
      */
     public function delete($code, $store_id = 0)
     {
-        if (!App::isAdmin()) {
+        if (!App::make('url')->isAdmin()) {
             return false;
         }
 
-        $this->registry->get('load')->model('setting/setting');
-        $model = $this->registry->get('model_setting_setting');
+        App::get('load')->model('setting/setting');
+        $model = App::get('model_setting_setting');
 
         if ($model && method_exists($model, 'deleteSetting')) {
             $model->deleteSetting($code, (int) $store_id);

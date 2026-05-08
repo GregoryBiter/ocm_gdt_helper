@@ -8,19 +8,8 @@ namespace GbitStudio\Gdt;
 class Language
 {
     /** @var object */
-    protected $registry;
-
-    /** @var object */
     protected $language;
 
-    /**
-     * @param object $registry
-     */
-    public function __construct($registry)
-    {
-        $this->registry = $registry;
-        $this->language = $registry->get('language');
-    }
 
     /**
      * Универсальный метод для получения переводов OpenCart.
@@ -34,7 +23,7 @@ class Language
     public function translate($key = null, $file = null, ...$args)
     {
         if ($key === null && $file === null) {
-            return $this->language->all();
+            return App::get('language')->all();
         }
 
         // Авто-определение файла из ключа (например, 'common/header.text_home')
@@ -45,7 +34,7 @@ class Language
         }
 
         if ($file !== null) {
-            $data = $this->registry->get('load')->language($file);
+            $data = App::get('load')->language($file);
 
             if ($key === null || $key === '') {
                 return $data;
@@ -53,7 +42,7 @@ class Language
 
             $text = isset($data[$key]) ? $data[$key] : $key;
         } else {
-            $text = $this->language->get($key);
+            $text = App::get('language')->get($key);
         }
 
         if (!empty($args) && is_string($text)) {

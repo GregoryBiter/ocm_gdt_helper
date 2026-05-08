@@ -42,67 +42,67 @@ class App
      */
     protected static function registerBaseBindings()
     {
-        self::singleton('config', function ($container, $registry) {
+        self::singleton('config', function ($container) {
             if (!class_exists('\\GbitStudio\\Gdt\\Config')) {
                 require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/config.php');
             }
-            return new Config($registry);
+            return new Config();
         });
 
-        self::singleton('setting', function ($container, $registry) {
+        self::singleton('setting', function ($container) {
             if (!class_exists('\\GbitStudio\\Gdt\\Setting')) {
                 require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/setting.php');
             }
-            return new Setting($registry);
+            return new Setting();
         });
 
-        self::singleton('db', function ($container, $registry) {
+        self::singleton('db', function ($container) {
             if (!class_exists('\\GbitStudio\\Gdt\\DB')) {
                 require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/db.php');
             }
-            return new DB($registry);
+            return new DB();
         });
 
-        self::singleton('session', function ($container, $registry) {
+        self::singleton('session', function ($container) {
             if (!class_exists('\\GbitStudio\\Gdt\\Session')) {
                 require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/session.php');
             }
-            return new Session($registry);
+            return new Session();
         });
 
-        self::singleton('response', function ($container, $registry) {
+        self::singleton('response', function ($container) {
             if (!class_exists('\\GbitStudio\\Gdt\\Response')) {
                 require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/response.php');
             }
-            return new Response($registry);
+            return new Response();
         });
 
-        self::singleton('request', function ($container, $registry) {
+        self::singleton('request', function ($container) {
             if (!class_exists('\\GbitStudio\\Gdt\\Request')) {
                 require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/request.php');
             }
-            return new Request($registry);
+            return new Request();
         });
 
-        self::singleton('url', function ($container, $registry) {
+        self::singleton('url', function ($container) {
             if (!class_exists('\\GbitStudio\\Gdt\\Url')) {
                 require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/url.php');
             }
-            return new Url($registry);
+            return new Url();
         });
 
-        self::singleton('language', function ($container, $registry) {
+        self::singleton('language', function ($container) {
             if (!class_exists('\\GbitStudio\\Gdt\\Language')) {
                 require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/language.php');
             }
-            return new Language($registry);
+            return new Language();
         });
 
-        self::singleton('cache', function ($container, $registry) {
+        self::singleton('cache', function ($container) {
             if (!class_exists('\\GbitStudio\\Gdt\\Cache')) {
                 require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/cache.php');
             }
-            return new Cache($registry);
+            return new Cache();
         });
     }
 

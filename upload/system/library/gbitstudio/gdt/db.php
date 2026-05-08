@@ -7,21 +7,6 @@ namespace GbitStudio\Gdt;
  */
 class DB
 {
-    /** @var object */
-    protected $registry;
-
-    /** @var object */
-    protected $db;
-
-    /**
-     * @param object $registry
-     */
-    public function __construct($registry)
-    {
-        $this->registry = $registry;
-        $this->db = $registry->get('db');
-    }
-
     /**
      * Возвращает новый экземпляр построителя запросов для указанной таблицы
      *
@@ -34,7 +19,7 @@ class DB
             require_once(DIR_SYSTEM . 'library/gbitstudio/gdt/querybuilder.php');
         }
 
-        $builder = new QueryBuilder($this->registry);
+        $builder = new QueryBuilder();
         return $builder->table($table);
     }
 

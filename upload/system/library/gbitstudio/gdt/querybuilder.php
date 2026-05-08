@@ -34,13 +34,9 @@ class QueryBuilder
     /** @var int */
     protected $offset;
 
-    /**
-     * @param object $registry
-     */
-    public function __construct($registry)
+    public function __construct()
     {
-        $this->registry = $registry;
-        $this->db = $registry->get('db');
+        $this->db = App::get('db');
     }
 
     /**
@@ -83,10 +79,10 @@ class QueryBuilder
         }
 
         $this->wheres[] = [
-            'type'     => 'AND',
-            'column'   => $column,
+            'type' => 'AND',
+            'column' => $column,
             'operator' => $operator,
-            'value'    => $value
+            'value' => $value
         ];
 
         return $this;
@@ -108,10 +104,10 @@ class QueryBuilder
         }
 
         $this->wheres[] = [
-            'type'     => 'OR',
-            'column'   => $column,
+            'type' => 'OR',
+            'column' => $column,
             'operator' => $operator,
-            'value'    => $value
+            'value' => $value
         ];
 
         return $this;
@@ -130,11 +126,11 @@ class QueryBuilder
     public function join($table, $first, $operator, $second, $type = 'INNER')
     {
         $this->joins[] = [
-            'type'     => $type,
-            'table'    => DB_PREFIX . $table,
-            'first'    => $first,
+            'type' => $type,
+            'table' => DB_PREFIX . $table,
+            'first' => $first,
             'operator' => $operator,
-            'second'   => $second
+            'second' => $second
         ];
 
         return $this;
@@ -155,7 +151,7 @@ class QueryBuilder
     public function orderBy($column, $direction = 'ASC')
     {
         $this->orders[] = [
-            'column'    => $column,
+            'column' => $column,
             'direction' => strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC'
         ];
 
@@ -171,8 +167,8 @@ class QueryBuilder
      */
     public function limit($limit, $offset = 0)
     {
-        $this->limit = (int)$limit;
-        $this->offset = (int)$offset;
+        $this->limit = (int) $limit;
+        $this->offset = (int) $offset;
         return $this;
     }
 
@@ -230,7 +226,7 @@ class QueryBuilder
         $this->select = $oldSelect;
 
         $query = $this->db->query($sql);
-        return isset($query->row['total']) ? (int)$query->row['total'] : 0;
+        return isset($query->row['total']) ? (int) $query->row['total'] : 0;
     }
 
     /**
@@ -315,7 +311,7 @@ class QueryBuilder
         }
 
         if ($this->limit !== null) {
-            $sql .= " LIMIT " . (int)$this->offset . ", " . (int)$this->limit;
+            $sql .= " LIMIT " . (int) $this->offset . ", " . (int) $this->limit;
         }
 
         return $sql;

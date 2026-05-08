@@ -7,19 +7,13 @@ namespace GbitStudio\Gdt;
  */
 class Request
 {
-    /** @var object */
-    protected $registry;
 
     /** @var object */
     protected $request;
 
-    /**
-     * @param object $registry
-     */
-    public function __construct($registry)
+    public function __construct()
     {
-        $this->registry = $registry;
-        $this->request = $registry->get('request');
+        $this->request = App::get('request');
     }
 
     /**

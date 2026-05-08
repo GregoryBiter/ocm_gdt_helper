@@ -10,18 +10,11 @@ use GbitStudio\Gdt\App;
 class Url
 {
     /** @var object */
-    protected $registry;
-
-    /** @var object */
     protected $url;
 
-    /**
-     * @param object $registry
-     */
-    public function __construct($registry)
+    public function __construct()
     {
-        $this->registry = $registry;
-        $this->url = $registry->get('url');
+        $this->url = App::get('url');
     }
 
     /**
@@ -47,7 +40,7 @@ class Url
 
         if ($this->isAdmin()) {
             try {
-                $session = $this->registry->get('session');
+                $session = App::get('session');
                 $user_token = isset($session->data['user_token']) ? $session->data['user_token'] : '';
 
                 if ($user_token && strpos($args, 'user_token=') === false) {
@@ -73,7 +66,7 @@ class Url
         }
 
         try {
-            $user = $this->registry->get('user');
+            $user = App::get('user');
             if ($user && $user->isLogged()) {
                 return true;
             }

@@ -7,19 +7,13 @@ namespace GbitStudio\Gdt;
  */
 class Session
 {
-    /** @var object */
-    protected $registry;
 
     /** @var object */
     protected $session;
 
-    /**
-     * @param object $registry
-     */
-    public function __construct($registry)
+    public function __construct()
     {
-        $this->registry = $registry;
-        $this->session = $registry->get('session');
+        $this->session = App::get('session');
     }
 
     /**
