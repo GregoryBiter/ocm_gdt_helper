@@ -19,7 +19,6 @@ class App
      *
      * @param object $registry
      */
-
     public function __construct($registry)
     {
         self::init($registry);
@@ -54,10 +53,7 @@ class App
     public static function registry($key = null)
     {
         if ($key !== null) {
-            if (!self::has($key)) {
-                throw new \Exception('Key not found in registry: ' . $key);
-            }
-            return self::get($key);
+            return self::$registry->get($key);
         }
         return self::$registry;
     }
@@ -76,13 +72,6 @@ class App
         return self::container();
     }
 
-    /**
-     * Получает или устанавливает значение конфигурации
-     *
-     * @param string|null $key Ключ конфигурации
-     * @param mixed|null $data Данные для установки
-     * @return mixed Значение конфигурации или все настройки
-     */
     /**
      * Получает экземпляр класса Config или конкретное значение
      *
@@ -128,7 +117,7 @@ class App
      */
     public static function response($content = null)
     {
-        $response = self::app('response');
+        $response = self::get('response');
 
         if ($content !== null) {
             $response->setOutput($content);
@@ -145,7 +134,7 @@ class App
      */
     public static function request($key = null)
     {
-        $request = self::app('request');
+        $request = self::get('request');
 
         if ($key !== null) {
             if (isset($request->get[$key]))
@@ -167,7 +156,7 @@ class App
      */
     public static function redirect($link, $status = 302)
     {
-        return self::$registry->get('response')->redirect($link, $status);
+        return self::get('response')->redirect($link, $status);
     }
 
     /**
@@ -179,40 +168,12 @@ class App
      */
     public static function view($route, $data = [])
     {
-        return self::$registry->get('load')->view($route, $data);
+        return self::get('load')->view($route, $data);
     }
 
     /**
-     * Получает переведенную строку из языкового файла
-     *
-     * @param string $key Ключ для получения конкретного перевода
-     * @param string|null $file Языковой файл
-     * @return string Переведенная строка
-     */
-    /**
      * Универсальный метод для получения переводов OpenCart.
      * 
-     * Поддерживает несколько режимов работы:
-     * 
-     * 1. Получение всех текущих переводов:
-     *    GDT::__(); // вернет массив всех загруженных строк
-     * 
-     * 2. Получение по ключу из уже загруженных файлов:
-     *    GDT::__('text_account'); // 'Личный кабинет'
-     * 
-     * 3. Автоматическая загрузка файла через точку (синтаксис Laravel/Modern):
-     *    GDT::__('account/login.text_forgotten'); // Загрузит account/login.php и вернет 'Забыли пароль?'
-     * 
-     * 4. Загрузка из конкретного файла:
-     *    GDT::__('button_save', 'common/header'); // 'Сохранить' из файла common/header.php
-     * 
-     * 5. Получение всех строк из конкретного файла:
-     *    GDT::__(null, 'extension/module/featured'); // вернет массив всех строк модуля
-     * 
-     * 6. Поддержка переменных (sprintf/vsprintf):
-     *    // Если в языке: 'У вас %s новых сообщений, %s'
-     *    GDT::__('text_new_msgs', null, 5, 'Григорий'); // 'У вас 5 новых сообщений, Григорий'
-     *
      * @param string|null $key  Ключ перевода ИЛИ 'путь/к/файлу.ключ'
      * @param string|null $file Путь к файлу перевода (если не указан в $key через точку)
      * @param mixed       ...$args Дополнительные аргументы для замены плейсхолдеров (%s, %d) в строке
@@ -233,7 +194,6 @@ class App
         }
 
         if ($file !== null) {
-            // В OC 3.x+ метод возвращает массив данных из файла
             $data = self::get('load')->language($file);
 
             if ($key === null || $key === '') {
@@ -245,7 +205,6 @@ class App
             $text = self::get('language')->get($key);
         }
 
-        // Если переданы дополнительные аргументы, используем sprintf
         if (!empty($args) && is_string($text)) {
             return vsprintf($text, $args);
         }
@@ -265,11 +224,10 @@ class App
         }
 
         try {
-            if (self::has('user') && self::get('user')) {
+            if (self::has('user') && self::get('user')->isLogged()) {
                 return true;
             }
         } catch (\Exception $e) {
-            // Игнорируем ошибку и продолжаем проверку
         }
 
         return false;
@@ -306,7 +264,6 @@ class App
                     $args = 'user_token=' . $user_token . $prefix . $args;
                 }
             } catch (\Exception $e) {
-                // Игнорируем ошибку получения токена
             }
         }
 
@@ -337,60 +294,6 @@ class App
     }
 
     /**
-     * Получает объект базы данных
-     *
-     * @return object Объект базы данных
-     */
-    public static function db()
-    {
-        return self::container()->db;
-    }
-
-    /**
-     * Выполняет SQL-запрос и возвращает массив строк (rows)
-     *
-     * @param string $sql SQL-запрос
-     * @return array
-     */
-    public static function query($sql)
-    {
-        $query = self::db()->query($sql);
-        return isset($query->rows) ? $query->rows : [];
-    }
-
-    /**
-     * Выполняет SQL-запрос и возвращает одну строку (row)
-     *
-     * @param string $sql SQL-запрос
-     * @return array|null
-     */
-    public static function row($sql)
-    {
-        $query = self::db()->query($sql);
-        return isset($query->row) ? $query->row : null;
-    }
-
-    /**
-     * Выполняет SQL-запрос и возвращает массив строк (rows)
-     *
-     * @deprecated Используйте App::query()
-     */
-    public static function dbQuery($sql)
-    {
-        return self::query($sql);
-    }
-
-    /**
-     * Выполняет SQL-запрос и возвращает одну строку (row)
-     *
-     * @deprecated Используйте App::row()
-     */
-    public static function dbRow($sql)
-    {
-        return self::row($sql);
-    }
-
-    /**
      * Получает объект URL
      *
      * @return object Объект URL
@@ -417,7 +320,7 @@ class App
         }
 
         if ($value !== null) {
-            $cache->set($key, $value); // В стандартном кеше OC 3 нет 3-го аргумента в set()
+            $cache->set($key, $value);
             return $value;
         }
 
@@ -436,7 +339,6 @@ class App
         try {
             self::get('log')->write($message);
         } catch (\Exception $e) {
-            // Фолбек на стандартное логирование PHP
             if (defined('DIR_LOGS')) {
                 $logPath = constant('DIR_LOGS') . $filename;
             } else {
@@ -459,7 +361,6 @@ class App
         $response->addHeader('Content-Type: application/json');
 
         if ($status !== 200) {
-            // В OC 3.x нет простого метода setStatus, обычно используется addHeader
             $response->addHeader('HTTP/1.1 ' . $status);
         }
 
@@ -473,7 +374,7 @@ class App
      */
     public static function load()
     {
-        return self::$registry->get('load');
+        return self::get('load');
     }
 
     /**
@@ -561,12 +462,6 @@ class App
         return self::has('customer') ? self::get('customer') : null;
     }
 
-    /**
-     * Получение произвольного компонента (Mini DI или Registry)
-     *
-     * @param string $key Ключ компонента
-     * @return mixed
-     */
     /**
      * Регистрирует привязку в контейнере
      */
